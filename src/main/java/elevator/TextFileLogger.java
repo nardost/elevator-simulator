@@ -11,12 +11,14 @@ class TextFileLogger implements Logger {
     private String logFile;
 
     TextFileLogger() throws ElevatorSystemException {
-        logFile = System.getenv("ELEVATOR_EVENTS_LOG_FILE");
-        File file = new File(logFile);
+        logFile = ConfigurationManager.getConfig("log-file");
         try {
+            File file = new File(logFile);
             file.createNewFile();
         } catch(IOException ioe) {
-            throw new ElevatorSystemException("ERROR: while opening log file.");//TODO: too revealing?
+            throw new ElevatorSystemException("ERROR: while creating log file.");
+        } catch(NullPointerException npe) {
+            throw new ElevatorSystemException("ERROR: ELEVATOR_EVENTS_LOG_FILE (the log file environment variable) is not defined.");
         }
     }
 
@@ -25,7 +27,7 @@ class TextFileLogger implements Logger {
         try {
             Files.write(Paths.get(logFile), (logMessage + "\n").getBytes(), StandardOpenOption.APPEND);
         } catch(IOException ioe) {
-            throw new ElevatorSystemException("ERROR: while writing to log file."); //TODO: too revealing?
+            throw new ElevatorSystemException("ERROR: while writing to log file.");
         }
     }
 }

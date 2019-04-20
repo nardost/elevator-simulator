@@ -1,15 +1,10 @@
 package elevator;
 
-import java.util.Observer;
-
-public interface ElevatorBehavior {
-
+public interface GenericElevator {
     int getLocation();
     double getSpeed();
-    Motion getMotion();
-    Doors getDoorsStatus();
-
-    void run() throws ElevatorSystemException;
+    Direction getDirection();
+    boolean areDoorsClosed();
     void move(int floor) throws  ElevatorSystemException;
     void openDoors();
     void closeDoors();

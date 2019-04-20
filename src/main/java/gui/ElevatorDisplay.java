@@ -32,7 +32,7 @@ public class ElevatorDisplay {
     }
 
     public void addElevator(int id, int initFloor) {
-        checkIntLE(id, 0, "ElevatorDisplay (addElevator): ElevatorBehavior id must be greater than zero.", -2);
+        checkIntLE(id, 0, "ElevatorDisplay (addElevator): GenericElevator id must be greater than zero.", -2);
         checkIntLE(initFloor, 0, "ElevatorDisplay (addElevator): Initial floor must be greater than zero.", -2);
 
         if (!initalized) {
@@ -43,7 +43,7 @@ public class ElevatorDisplay {
     }
 
     public void updateElevator(int id, int floor, int numRiders, Direction dir) {
-        checkIntLE(id, 0, "ElevatorDisplay (updateElevator): ElevatorBehavior id must be greater than zero.", -1);
+        checkIntLE(id, 0, "ElevatorDisplay (updateElevator): GenericElevator id must be greater than zero.", -1);
         checkIntLE(floor, 0, "ElevatorDisplay (updateElevator): Floor must be greater than zero.", -1);
         checkIntLE(numRiders, -1, "ElevatorDisplay (updateElevator): number of riders must be zero or greater.", -1);
 
@@ -57,7 +57,7 @@ public class ElevatorDisplay {
     }
     
     public void setIdle(int id) {
-        checkIntLE(id, 0, "ElevatorDisplay (setDirection): ElevatorBehavior id must be greater than zero.", -1);
+        checkIntLE(id, 0, "ElevatorDisplay (setDirection): GenericElevator id must be greater than zero.", -1);
 
         if (!initalized) {
             System.err.println("ElevatorDisplay (setDirection): ElevatorDisplay has not been initalized. Please call 'initialize(numFloors)' before use.");
@@ -68,7 +68,7 @@ public class ElevatorDisplay {
     
 
     public void openDoors(int id) {
-        checkIntLE(id, 0, "ElevatorDisplay (openDoors): ElevatorBehavior id must be greater than zero.", -1);
+        checkIntLE(id, 0, "ElevatorDisplay (openDoors): GenericElevator id must be greater than zero.", -1);
 
         if (!initalized) {
             System.err.println("ElevatorDisplay (openDoors): ElevatorDisplay has not been initalized. Please call 'initialize(numFloors)' before use.");
@@ -78,7 +78,7 @@ public class ElevatorDisplay {
     }
 
     public void closeDoors(int id) {
-        checkIntLE(id, 0, "ElevatorDisplay (checkIntLE): ElevatorBehavior id must be greater than zero.", -1);
+        checkIntLE(id, 0, "ElevatorDisplay (checkIntLE): GenericElevator id must be greater than zero.", -1);
 
         if (!initalized) {
             System.err.println("ElevatorDisplay (closeDoors): ElevatorDisplay has not been initalized. Please call 'initialize(numFloors)' before use.");

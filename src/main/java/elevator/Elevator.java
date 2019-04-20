@@ -4,48 +4,38 @@ import java.util.Date;
 import java.util.List;
 import java.util.PriorityQueue;
 
-enum Motion {IDLE, MOVING_UP, MOVING_DOWN}
-enum Doors {OPEN, CLOSED}
+enum Direction {IDLE, UP, DOWN}
 
-public class Elevator implements ElevatorBehavior, Controllable, Observer, Observable {
+class Elevator implements GenericElevator, Controllable, Observer, Observable {
 
-    private int id;
+    private int elevatorId;
     private double speed;
-    private boolean isActive;
     private int location;
-    private Motion motion;
-    private Doors doors;
+    private Direction direction;
+    private boolean doorsClosed;
     private List<Rider> riders;
     private List<Observer> observers;
-    private Controller controller;
 
     private PriorityQueue<Integer> nextFloor;
 
-    public Elevator(int id, double speed, int initialLocation, Motion idleOrUpOrDown, Doors openOrClosed, Controller theBuilding) {
-        this.id = id;
-        this.speed = speed;
-        this.isActive = false; //TODO: check if this is really necessary
-        this.location = initialLocation;
-        this.motion = idleOrUpOrDown;
-        this.doors = openOrClosed;
-        this.controller = theBuilding;
+    private static int instanceCounter = 0;
 
-        this.nextFloor = new PriorityQueue<>();//TODO: Collections.reverseOrder() dynamically on UP | DOWN
+    public Elevator(double speed, int initialLocation) {
+
+        setElevatorId(++instanceCounter);
+        setSpeed(speed);
+        setLocation(initialLocation);
+        setDirection(Direction.IDLE);
+        setDoorsClosed(true);
+
+        setNextFloor(new PriorityQueue<>());//TODO: Collections.reverseOrder() dynamically on UP | DOWN
     }
 
-    @Override
-    public void run() throws ElevatorSystemException {
+   public void run() throws ElevatorSystemException {
         do {
-            this.isActive = true;
             //TODO: get next destination from queue and move
             move(nextFloor.poll());
         } while(true);
-    }
-
-    @Override
-    public void stop() {
-        this.isActive = false;
-        //TODO
     }
 
     @Override
@@ -54,13 +44,13 @@ public class Elevator implements ElevatorBehavior, Controllable, Observer, Obser
     }
 
     @Override
-    public Motion getMotion() {
-        return this.motion;
+    public Direction getDirection() {
+        return this.direction;
     }
 
     @Override
-    public Doors getDoorsStatus() {
-        return this.doors;
+    public boolean areDoorsClosed() {
+        return this.doorsClosed;
     }
 
     @Override
@@ -70,24 +60,26 @@ public class Elevator implements ElevatorBehavior, Controllable, Observer, Obser
 
     @Override
     public void move(int floor) throws ElevatorSystemException {
-        if(this.motion == Motion.IDLE) {
-            if(floor == this.location) {
+        if(getDirection() == Direction.IDLE) {
+            if(floor == getLocation()) {
                 return;
             }
-            this.motion = (floor > this.location) ? Motion.MOVING_UP : Motion.MOVING_DOWN;
-            long delay = ((long) Math.abs(floor - this.location) / (long) this.speed);
-            System.out.println(new Date() + " Elevator " + this.id + " moving to floor " + floor);
+            setDirection((floor > getLocation()) ? Direction.UP : Direction.DOWN);
+            long delay = ((long) Math.abs(floor - getLocation()) / (long) getSpeed());
+            System.out.println(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
+            EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
             try {
                 Thread.sleep(delay * 1000L);
             } catch(InterruptedException ie) {
                 throw new ElevatorSystemException("Thread interrupted.");
             }
-            System.out.println(new Date() + " Elevator " + this.id + " at floor " + floor);
-            this.location = floor;
-            this.motion = Motion.IDLE;
-            this.doors = Doors.OPEN;
-            Signal signal = new Signal(Receiver.BUILDING, 0, floor);
-            this.notifyController(signal);
+            System.out.println(new Date() + " Elevator " + getElevatorId() + " at floor " + floor);
+            EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " at floor " + floor);
+            setLocation(floor);
+            setDirection(Direction.IDLE);
+            setDoorsClosed(false);
+            Request request = new Request(floor, Direction.UP);
+            this.sendRequestToController(request);
 
             //TODO: delay while door is open
             try {
@@ -101,30 +93,29 @@ public class Elevator implements ElevatorBehavior, Controllable, Observer, Obser
 
     @Override
     public void openDoors() {
-        doors = Doors.OPEN;
+        setDoorsClosed(false);
     }
 
     @Override
     public void closeDoors() {
-        doors = Doors.CLOSED;
+        setDoorsClosed(true);
     }
 
     @Override
-    public void notifyController(Signal signal) {
-        controller.receiveNotification(signal);
+    public void sendRequestToController(Request request) throws ElevatorSystemException {
+        Building.getInstance().relayRequestToControlCenter(request);
     }
 
     @Override
-    public void receiveSignal(Signal signal) {
-        if(signal.getReceiverType() == Receiver.ELEVATOR && signal.getReceiverId() == this.id) {
-            //TODO: act on received signal
-            this.nextFloor.offer(signal.getGotoFloor());
+    public void receiveControlSignal(Signal signal) {
+        getNextFloor().offer(signal.getFloorNumberFromPayload());
+    }
+
+    @Override
+    public void update(Signal signal) { //TODO: Building updates elevator with signal. Floors acts on signal
+        if(signal.getReceiver() == ElementType.ELEVATOR && signal.getReceiverId() == getElevatorId()) {
+            receiveControlSignal(signal);
         }
-    }
-
-    @Override
-    public void update(Signal signal) {
-
     }
 
     /**
@@ -149,26 +140,6 @@ public class Elevator implements ElevatorBehavior, Controllable, Observer, Obser
     }
 
     @Override
-    public void deleteObservers() {
-
-    }
-
-    @Override
-    public void setChanged() {
-
-    }
-
-    @Override
-    public void clearChanged() {
-
-    }
-
-    @Override
-    public boolean hasChanged() {
-        return false;
-    }
-
-    @Override
     public int countObservers() {
         return 0;
     }
@@ -182,7 +153,43 @@ public class Elevator implements ElevatorBehavior, Controllable, Observer, Obser
         deleteObserver((Observer) rider);
     }
 
-    public int getId() {
-        return id;
+    public int getElevatorId() {
+        return elevatorId;
+    }
+
+    private PriorityQueue<Integer> getNextFloor() {
+        return nextFloor;
+    }
+
+    private void setElevatorId(int elevatorId) {
+        this.elevatorId = elevatorId;
+    }
+
+    private void setSpeed(double speed) {
+        this.speed = speed;
+    }
+
+    private void setLocation(int location) {
+        this.location = location;
+    }
+
+    private void setDirection(Direction direction) {
+        this.direction = direction;
+    }
+
+    private void setDoorsClosed(boolean doorsClosed) {
+        this.doorsClosed = doorsClosed;
+    }
+
+    private void setRiders(List<Rider> riders) {
+        this.riders = riders;
+    }
+
+    private void setObservers(List<Observer> observers) {
+        this.observers = observers;
+    }
+
+    private void setNextFloor(PriorityQueue<Integer> nextFloor) {
+        this.nextFloor = nextFloor;
     }
 }

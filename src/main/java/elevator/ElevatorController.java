@@ -1,39 +1,42 @@
 package elevator;
 
-import java.util.List;
-
 
 /**
  * @author ntessema
  *
+ * Using the Strategy Pattern
+ *
  */
-public class ElevatorController implements Controller {
+class ElevatorController {
 
-    private List<Floor> floors;
-    private List<ElevatorBehavior> elevators;
+    private Controller controller;
 
-    private EventLogger logger;
+    private static ElevatorController controlCenter;
 
-    public ElevatorController() {
+    private ElevatorController() {
+        setController(ControllerFactory.createController());
     }
 
-    @Override
-    public void signalAll(Signal signal) {
-
+    public static ElevatorController getInstance() {
+        if(controlCenter == null) {
+            synchronized(ElevatorController.class) {
+                if(controlCenter == null) {
+                    controlCenter = new ElevatorController();
+                }
+            }
+        }
+        return controlCenter;
     }
 
-    @Override
-    public void receiveNotification(Signal signal) {
-
+    public void sendControlSignal(Signal signal) throws ElevatorSystemException {
+        Building.getInstance().notifyObservers(signal);
     }
 
-    @Override
-    public void run(Signal signal) {
-        //TODO: run signal
+    public void receiveRequest(Request request) throws ElevatorSystemException {
+        controller.receiveRequest(request);
     }
 
-    @Override
-    public void stop(Signal signal) {
-        //TODO: stop signal
+    private void setController(Controller controller) {
+        this.controller = controller;
     }
 }

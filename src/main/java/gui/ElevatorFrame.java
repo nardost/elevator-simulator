@@ -20,7 +20,7 @@ public class ElevatorFrame extends javax.swing.JFrame {
         initComponents();
 
         maxFloors = max;
-        setTitle("ElevatorBehavior Display");
+        setTitle("GenericElevator Display");
     }
 
     public void addElevator(int id, int initValue) {

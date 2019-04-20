@@ -2,81 +2,42 @@ package elevator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-public class Floor implements Observer, Observable, Controllable {
+class Floor implements Observer, Observable, Controllable {
 
-    private int id;
+    private int floorNumber;
     private boolean upButtonActive;
     private boolean downButtonActive;
     private PersonsGenerator generator;
-    private Controller controller;
-    private EventLogger logger;
     
-    private List<Observer> observers;
-    
-    private List<Rider> ridersDoneWithWaitingForElevator;
+    private List<Observer> waitingRiders;
+    private List<Rider> doneRiders;
 
-    private boolean isActive;
+    private static int instanceCounter = 0;
 
-    public Floor(int id, boolean upButtonActive, boolean downButtonActive, Controller theBuilding, EventLogger logger) {
-        this.id = id;
-        this.isActive = false;
-        this.upButtonActive = upButtonActive;
-        this.downButtonActive = downButtonActive;
-        this.controller = theBuilding;
-        this.logger = logger;
+    public Floor(boolean upButtonActive, boolean downButtonActive) {
+        setFloorNumber(++instanceCounter);
+        setUpButtonActive(upButtonActive);
+        setDownButtonActive(downButtonActive);
 
-        this.generator = new PersonsGenerator(new Type1RiderGenerator());//TODO: make factory
-        this.observers = new ArrayList<>();
-        this.ridersDoneWithWaitingForElevator = new ArrayList<>();
-    }
-/** replaced by other Observable methods down below
-    @Override
-    public void register(Rider observer) throws ElevatorSystemException {
-        observers.add(observer);
-        //TODO: log event
+        setGenerator(new PersonsGenerator(new Type1RiderGenerator()));//TODO: make factory
+        setWaitingRiders(new ArrayList<>());
+        setDoneRiders(new ArrayList<>());
     }
 
     @Override
-    public void unregister(Rider observer) {
-        int index = observers.indexOf(observer);
-        observers.remove(index);
-        ridersDoneWithWaitingForElevator.add(observer);
-        //TODO: log event (not required)
+    public void receiveControlSignal(Signal signal) {
+
     }
 
     @Override
-    public void notifyRiders() {
-        for(Rider observer : observers) {
-            observer.update();
-            //TODO: log event (not required)
-        }
-    }
-*/
-    @Override
-    public void receiveSignal(Signal signal) {
-        if(signal.getReceiverType() == Receiver.FLOOR && signal.getReceiverId() == this.getId()) {
-            //TODO: receive signal from Controller and act if destined for self.
-        }
+    public void sendRequestToController(Request request) throws ElevatorSystemException {
+        Building.getInstance().relayRequestToControlCenter(request);
     }
 
-    @Override
-    public void notifyController(Signal signal) {
-        controller.receiveNotification(signal);
-    }
-
-    @Override
-    public void run() throws ElevatorSystemException {
-        this.isActive = true;
+    public void start() throws ElevatorSystemException {
         //TODO: run Floor
         generateRiders();
-    }
-
-    @Override
-    public void stop() {
-        this.isActive = false;
-        //TODO: stop Floor activity
     }
 
     /**
@@ -86,7 +47,7 @@ public class Floor implements Observer, Observable, Controllable {
 
     @Override
     public void addObserver(Observer o) {
-        observers.add(o);
+        getWaitingRiders().add(o);
     }
 
     @Override
@@ -96,29 +57,9 @@ public class Floor implements Observer, Observable, Controllable {
 
     @Override
     public void notifyObservers(Signal signal) {
-        for(Observer observer : observers) {
+        for(Observer observer : getWaitingRiders()) {
             observer.update(signal);
         }
-    }
-
-    @Override
-    public void deleteObservers() {
-
-    }
-
-    @Override
-    public void setChanged() {
-
-    }
-
-    @Override
-    public void clearChanged() {
-
-    }
-
-    @Override
-    public boolean hasChanged() {
-        return false;
     }
 
     @Override
@@ -126,19 +67,36 @@ public class Floor implements Observer, Observable, Controllable {
         return 0;
     }
 
+
     /**
      *
      * ******** Observer methods *******************
      */
 
     @Override
-    public void update(Signal signal) { //TODO: Floor observes Building
-
+    public void update(Signal signal) { //TODO: Building updates Floor with signal. Floor acts on the signal
+        if(signal.getReceiver() == ElementType.FLOOR && signal.getReceiverId() == getFloorNumber()) {
+            receiveControlSignal(signal);
+        }
     }
 
 
-    public int getId() {
-        return id;
+
+    public void generateRiders() throws ElevatorSystemException {
+        int counter = 0;
+        do {
+            List<Rider> newRiders = getGenerator().generateRiders(getFloorNumber(), Building.getInstance().getNumberOfFloors());
+            for(Rider rider: newRiders) {
+                addObserver((Observer) rider);
+                EventLogger.getInstance().logEvent("Rider " + rider.getId() + " generated on floor " + getFloorNumber());
+            }
+            counter++;
+        } while(counter < 10);
+    }
+
+
+    public int getFloorNumber() {
+        return floorNumber;
     }
 
     public boolean isUpButtonActive() {
@@ -149,25 +107,40 @@ public class Floor implements Observer, Observable, Controllable {
         return downButtonActive;
     }
 
-    public void  setUpButtonActive(boolean b) {
-        upButtonActive = b;
+
+    private PersonsGenerator getGenerator() {
+        return generator;
     }
 
-    public void  setDownButtonActive(boolean b) {
-        downButtonActive = b;
+    private List<Observer> getWaitingRiders() {
+        return waitingRiders;
     }
 
-    public void generateRiders() throws ElevatorSystemException {
-        int counter = 0;
-        do {
-            String id = UUID.randomUUID().toString();
-            List<Rider> newRiders = generator.generateRiders(id, this);
-            for(Rider rider: newRiders) {
-                addObserver((Observer) rider);
-                logger.logEvent("Rider " + rider.getId() + " generated on floor " + getId());
-            }
-            counter++;
-        } while(counter < 10);
+    private List<Rider> getDoneRiders() {
+        return doneRiders;
     }
 
+    private void setFloorNumber(int floorNumber) {
+        this.floorNumber = floorNumber;
+    }
+
+    public void  setUpButtonActive(boolean upButtonActive) {
+        this.upButtonActive = upButtonActive;
+    }
+
+    public void  setDownButtonActive(boolean downButtonActive) {
+        this.downButtonActive = downButtonActive;
+    }
+
+    private void setGenerator(PersonsGenerator gen) {
+        this.generator = generator;
+    }
+
+    private void setWaitingRiders(List<Observer> waiting) {
+        this.waitingRiders = waitingRiders;
+    }
+
+    private void setDoneRiders(List<Rider> done) {
+        this.doneRiders = doneRiders;
+    }
 }

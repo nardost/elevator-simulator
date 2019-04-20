@@ -10,7 +10,7 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, ElevatorSystemException {
 
 
-        Building building = Building.setupBuilding(10, 3, "alpha", "FILE");
+        Building building = Building.getInstance();
 
         int numFloor = building.getNumberOfFloors();
         int numElev = building.getNumberOfElevators();

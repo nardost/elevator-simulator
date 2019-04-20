@@ -1,37 +1,38 @@
 package elevator;
 
-public class EventLogger {
+class EventLogger {
 
-    private Logger logger;
+    private Logger logger; //For Strategy pattern
 
-    private static EventLogger theLogger = null;
+    private static EventLogger theLogger = null; //For Singleton pattern
 
     private EventLogger(Logger logger) {
         this.logger = logger;
     }
 
     //Singleton
-    public static EventLogger getInstance(String typeOfLogger) throws ElevatorSystemException {
+    public static EventLogger getInstance() throws ElevatorSystemException {
         if(theLogger == null) {
             synchronized(EventLogger.class) {
                 if(theLogger == null) {
-                    switch(typeOfLogger) {
-                        case "STDOUT":
-                            theLogger = new EventLogger(new StandardOutputLogger());
-                            break;
-                        case "FILE":
-                            theLogger = new EventLogger(new TextFileLogger());
-                            break;
-                        default:
-                            throw new ElevatorSystemException("Event logger options are: FILE, STDOUT");
-                    }
+                    theLogger = new EventLogger(LoggerFactory.createLogger());
                 }
             }
         }
         return theLogger;
     }
 
+    private Logger getLogger() {
+        return logger;
+    }
+
+    /**
+     * Strategy pattern. Delegates to a specific logging object.
+     *
+     * @param logMessage
+     * @throws ElevatorSystemException
+     */
     public void logEvent(String logMessage) throws ElevatorSystemException {
-        logger.log(logMessage);
+        getLogger().log(logMessage);
     }
 }

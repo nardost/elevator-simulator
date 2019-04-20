@@ -2,7 +2,7 @@ package elevator;
 
 import java.util.List;
 
-public class PersonsGenerator {
+class PersonsGenerator {
 
     private RidersGenerator generator;
 
@@ -11,7 +11,7 @@ public class PersonsGenerator {
         this.generator = generator;
     }
 
-   public List<Rider> generateRiders(String id, Floor floor) throws ElevatorSystemException {
-        return generator.generate(id, floor);
+   public List<Rider> generateRiders(int floorNumber, int destination) throws ElevatorSystemException {
+        return generator.generate(floorNumber, destination);
     }
 }
