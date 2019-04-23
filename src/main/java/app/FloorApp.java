@@ -1,19 +1,33 @@
 package app;
 
 import elevator.*;
+import gui.ElevatorDisplay;
 
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public class FloorApp {
     public static void main(String args[]) {
+
         try {
             Building building = Building.getInstance();
+            int numFloor = building.getNumberOfFloors();
+            int numElev = building.getNumberOfElevators();
+
+            ElevatorDisplay.getInstance().initialize(numFloor);
+            for (int i = 1; i <= numElev; i++) {
+                ElevatorDisplay.getInstance().addElevator(i, 1);
+            }
+
             if(building != null) {
-                building.start();
+                building.generatePerson(9, 1);
+                building.generatePerson(20, 1);
+                building.generatePerson(2, 1);
+                building.generatePerson(2, 18);
+                building.generatePerson(12, 16);
             } else {
                 System.out.println("Building null");
             }
+
         } catch(ElevatorSystemException ese) {
             System.out.println(ese.getMessage());
         }

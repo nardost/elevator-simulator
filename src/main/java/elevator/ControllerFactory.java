@@ -6,10 +6,10 @@ class ControllerFactory {
     }
 
     public static Controller createController() {
-        switch(ConfigurationManager.getConfig("controller")) {
-            case "b":
+        switch(SystemConfiguration.getConfig("controller")) {
+            case "beta":
                 return new ControllerBeta();
-            case "a":
+            case "alpha":
             default:
                 return new ControllerAlpha();
         }

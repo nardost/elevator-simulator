@@ -1,45 +1,52 @@
 package elevator;
 
-import java.util.Date;
-import java.util.List;
-import java.util.PriorityQueue;
+import gui.ElevatorDisplay;
+
+import java.util.*;
+
+import static gui.ElevatorDisplay.Direction.DOWN;
+import static gui.ElevatorDisplay.Direction.UP;
 
 enum Direction {IDLE, UP, DOWN}
 
 class Elevator implements GenericElevator, Controllable, Observer, Observable {
 
     private int elevatorId;
-    private double speed;
+    private int speed;
     private int location;
     private Direction direction;
     private boolean doorsClosed;
-    private List<Rider> riders;
-    private List<Observer> observers;
 
-    private PriorityQueue<Integer> nextFloor;
+    private List<Observer> riders;
+
+    private PriorityQueue<Integer> nextFloorQueue;
 
     private static int instanceCounter = 0;
 
-    public Elevator(double speed, int initialLocation) {
+    public Elevator() throws ElevatorSystemException {
 
         setElevatorId(++instanceCounter);
-        setSpeed(speed);
-        setLocation(initialLocation);
+        setSpeed();
         setDirection(Direction.IDLE);
         setDoorsClosed(true);
+        setRiders(new ArrayList<>());
+        try {
+            setLocation(Integer.parseInt(SystemConfiguration.getConfig("default-floor")));
+        } catch(NumberFormatException nfe) {
+            throw new ElevatorSystemException("Wrong configuration value for default floor.");
+        }
 
-        setNextFloor(new PriorityQueue<>());//TODO: Collections.reverseOrder() dynamically on UP | DOWN
+        setNextFloorQueue(new PriorityQueue<>(Comparator.naturalOrder()));//TODO: Collections.reverseOrder() dynamically on UP | DOWN
     }
 
    public void run() throws ElevatorSystemException {
-        do {
-            //TODO: get next destination from queue and move
-            move(nextFloor.poll());
-        } while(true);
+       while(!getNextFloorQueue().isEmpty()) {
+           //moveTo(getNextFloorQueue().poll());
+        }
     }
 
     @Override
-    public double getSpeed() {
+    public int getSpeed() {
         return this.speed;
     }
 
@@ -59,61 +66,108 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
     }
 
     @Override
-    public void move(int floor) throws ElevatorSystemException {
-        if(getDirection() == Direction.IDLE) {
-            if(floor == getLocation()) {
-                return;
-            }
-            setDirection((floor > getLocation()) ? Direction.UP : Direction.DOWN);
-            long delay = ((long) Math.abs(floor - getLocation()) / (long) getSpeed());
-            System.out.println(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
-            EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
-            try {
-                Thread.sleep(delay * 1000L);
-            } catch(InterruptedException ie) {
-                throw new ElevatorSystemException("Thread interrupted.");
-            }
-            System.out.println(new Date() + " Elevator " + getElevatorId() + " at floor " + floor);
-            EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " at floor " + floor);
-            setLocation(floor);
-            setDirection(Direction.IDLE);
-            setDoorsClosed(false);
-            Request request = new Request(floor, Direction.UP);
-            this.sendRequestToController(request);
+    public void moveTo(int floor, Direction direction) throws ElevatorSystemException {
 
-            //TODO: delay while door is open
-            try {
-                Thread.sleep(1000L);
-            } catch(InterruptedException ie) {
-                throw new ElevatorSystemException("Thread interrupted.");
+        closeDoors();
+
+        setDirection(direction);
+
+        if(floor == getLocation()) {
+            System.out.println("Elevator is already on the same floor.");
+            openDoors();
+            return;
+        }
+
+        long floorTime = 1000L * (long) getSpeed();
+        EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
+        if(getLocation() < floor) {
+            for (int i = getLocation(); i <= floor; i++) {
+                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, countObservers(), UP);
+                try {
+                    Thread.sleep(floorTime);
+                } catch(InterruptedException ie) {
+                    throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
+                }
+            }
+        } else {
+            for (int i = getLocation(); i >= floor; i--) {
+                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, countObservers(), DOWN);
+                try {
+                    Thread.sleep(floorTime);
+                } catch(InterruptedException ie) {
+                    throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
+                }
             }
         }
-        //TODO: move...
+
+        openDoors();
+
+        EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " at floor " + floor);
+
+        setLocation(floor);
+        Building.getInstance().relayNotificationToControlCenter(new Notification(getElevatorId(), getLocation(), getDirection()));
     }
 
     @Override
-    public void openDoors() {
+    public void openDoors() throws ElevatorSystemException {
         setDoorsClosed(false);
+        try {
+            long doorTime = Long.parseLong(SystemConfiguration.getConfig("door-time"));
+            System.out.print(" : doors open");
+            ElevatorDisplay.getInstance().openDoors(getElevatorId());
+            Thread.sleep(doorTime * 1000L);
+        } catch(InterruptedException ie) {
+            throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
+        } catch(NumberFormatException nfe) {
+            throw new ElevatorSystemException("Wrong configuration value for door time");
+        }
     }
 
     @Override
     public void closeDoors() {
         setDoorsClosed(true);
+        ElevatorDisplay.getInstance().closeDoors(getElevatorId());
+        System.out.println(" : doors closed");
     }
 
+
+    /**
+     * Invoked when:
+     *  - Person enters Elevator and requests to go to Floor
+     *  - Elevator notifies Controller of its current location
+     *
+     * @param request
+     * @throws ElevatorSystemException
+     */
     @Override
     public void sendRequestToController(Request request) throws ElevatorSystemException {
         Building.getInstance().relayRequestToControlCenter(request);
     }
 
+    /**
+     *Invoked when:
+     * - Controller sends a GOTO Floor signal to Elevator
+     *
+     * @param signal
+     * @throws ElevatorSystemException
+     */
     @Override
-    public void receiveControlSignal(Signal signal) {
-        getNextFloor().offer(signal.getFloorNumberFromPayload());
+    public void receiveControlSignal(Signal signal) throws ElevatorSystemException {
+        if(signal.getPayloadType() == PayloadType.CONTROLLER_TO_ELEVATOR__GOTO_FLOOR_DIRECTION) {
+            System.out.println("Elevator[" + getElevatorId() + "] ordered to go to floor " + signal.getField2());
+            getNextFloorQueue().offer(signal.getField2());
+            moveTo(signal.getField2(), signal.getField4());
+        } else if(signal.getPayloadType() == PayloadType.CONTROLLER_TO_ALL__RUN) {
+            run();
+        } else {
+            throw new ElevatorSystemException("INTERNAL ERROR: Wrong signal sent to ELEVATOR " + signal.getReceiverId());
+        }
     }
 
     @Override
-    public void update(Signal signal) { //TODO: Building updates elevator with signal. Floors acts on signal
-        if(signal.getReceiver() == ElementType.ELEVATOR && signal.getReceiverId() == getElevatorId()) {
+    public void update(Signal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
+        if(signal.getReceiver() == ElementType.ALL || (signal.getReceiver() == ElementType.ELEVATOR && signal.getReceiverId() == getElevatorId())) {
+            System.out.println("Elevator[" + getElevatorId() + "] updated with signal " + signal.getPayloadType());
             receiveControlSignal(signal);
         }
     }
@@ -123,8 +177,12 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
      */
 
     @Override
-    public void addObserver(Observer o) {
-        observers.add(o);
+    public void addObserver(Observer o) throws ElevatorSystemException {
+        try {
+            getRiders().listIterator().add(o);
+        } catch (NullPointerException npe) {
+            throw new ElevatorSystemException("INTERNAL ERROR: Riders list of elevator " + getElevatorId() + " is null.");
+        }
     }
 
     @Override
@@ -133,44 +191,80 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
     }
 
     @Override
-    public void notifyObservers(Signal signal) {
-        for(Observer observer : observers) {
+    public void notifyObservers(Signal signal) throws ElevatorSystemException {
+        for(Observer observer : riders) {
             observer.update(signal);
         }
     }
 
     @Override
-    public int countObservers() {
-        return 0;
+    public int countObservers() throws ElevatorSystemException {
+
+        if(getRiders() == null) {
+            throw new ElevatorSystemException("INTERNAL ERROR: riders list of Elevator is null.");
+        }
+        return getRiders().size();
     }
 
-    public void enterRider(Rider rider) {
-        riders.add(rider);
-        addObserver((Observer) rider);
+    void enterRider(Observer rider) throws ElevatorSystemException {
+        addObserver(rider);
+        System.out.println(countObservers() + " riders in elevator " + getElevatorId());
+        Person person = (Person) rider;
+        person.requestFloor(person.getDestinationFloor());
     }
-    public void exitRider(Rider rider) {
-        riders.remove(rider);
+    void exitRider(Rider rider) {
         deleteObserver((Observer) rider);
     }
 
-    public int getElevatorId() {
+    int getElevatorId() {
         return elevatorId;
     }
 
-    private PriorityQueue<Integer> getNextFloor() {
-        return nextFloor;
+    private boolean isDoorsClosed() {
+        return doorsClosed;
+    }
+
+    private List<Observer> getRiders() {
+        return riders;
+    }
+
+    private PriorityQueue<Integer> getNextFloorQueue() {
+        return nextFloorQueue;
     }
 
     private void setElevatorId(int elevatorId) {
         this.elevatorId = elevatorId;
     }
 
-    private void setSpeed(double speed) {
-        this.speed = speed;
+    private void setSpeed() throws ElevatorSystemException {
+        try {
+            this.speed = Integer.parseInt(SystemConfiguration.getConfig("floor-time"));
+        } catch(NumberFormatException nfe) {
+            throw new ElevatorSystemException("Wrong configuration value for floor time.");
+        }
     }
 
-    private void setLocation(int location) {
+    private void setLocation(int location) throws ElevatorSystemException {
+        //NOTE: I used Building.getInstance().getNumberOfFloors() and got stuck for hours.
+        if(location < 1 || location > Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"))) {
+            throw new ElevatorSystemException("Floors can only be 1 to " + Integer.parseInt(SystemConfiguration.getConfig("number-of-floors")));
+        }
         this.location = location;
+    }
+
+    private void setRiders(List<Observer> riders) {
+        this.riders = riders;
+    }
+
+    public void setIdle() throws ElevatorSystemException {
+        try {
+            System.out.println("Idling at floor " + getLocation());
+            Thread.sleep(Long.parseLong(SystemConfiguration.getConfig("time-out")) * 1000L);
+            int next = (getNextFloorQueue().isEmpty())? Integer.parseInt(SystemConfiguration.getConfig("default-floor")) : getNextFloorQueue().peek();
+            moveTo(next, Direction.IDLE);
+        } catch(InterruptedException ie) {
+            throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
+        }
     }
 
     private void setDirection(Direction direction) {
@@ -181,15 +275,10 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
         this.doorsClosed = doorsClosed;
     }
 
-    private void setRiders(List<Rider> riders) {
-        this.riders = riders;
-    }
-
-    private void setObservers(List<Observer> observers) {
-        this.observers = observers;
-    }
-
-    private void setNextFloor(PriorityQueue<Integer> nextFloor) {
-        this.nextFloor = nextFloor;
+    private void setNextFloorQueue(PriorityQueue<Integer> queue) throws ElevatorSystemException {
+        if(queue == null) {
+            throw new ElevatorSystemException("INTERNAL ERROR: null assigned in setNextFloorQueue()");
+        }
+        this.nextFloorQueue = queue;
     }
 }

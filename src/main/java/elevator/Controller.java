@@ -6,6 +6,7 @@ package elevator;
  *
  */
 public interface Controller {
-    void sendControlSignal(Signal signal);
+    void sendControlSignal(Signal signal) throws ElevatorSystemException;
     void receiveRequest(Request request) throws ElevatorSystemException;
+    void receiveNotification(Notification notification) throws ElevatorSystemException;
 }

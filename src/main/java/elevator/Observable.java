@@ -1,8 +1,8 @@
 package elevator;
 
 public interface Observable {
-    void addObserver(Observer o);
-    void deleteObserver(Observer o);
-    void notifyObservers(Signal signal);
-    int countObservers();
+    void addObserver(Observer o) throws ElevatorSystemException;
+    void deleteObserver(Observer o) throws ElevatorSystemException;
+    void notifyObservers(Signal signal) throws ElevatorSystemException;
+    int countObservers() throws ElevatorSystemException;
 }

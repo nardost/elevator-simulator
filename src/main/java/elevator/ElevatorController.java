@@ -36,6 +36,10 @@ class ElevatorController {
         controller.receiveRequest(request);
     }
 
+    public void receiveNotification(Notification notification) throws ElevatorSystemException {
+        controller.receiveNotification(notification);
+    }
+
     private void setController(Controller controller) {
         this.controller = controller;
     }

@@ -1,5 +1,5 @@
 package elevator;
 
 interface Observer {
-    void update(Signal arg);
+    void update(Signal arg) throws ElevatorSystemException;
 }

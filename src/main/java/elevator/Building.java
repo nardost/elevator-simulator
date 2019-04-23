@@ -1,7 +1,6 @@
 package elevator;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -15,27 +14,27 @@ public class Building implements Observable {
 
     private List<Floor> floors;
     private List<Elevator> elevators;
+    private List<Rider> riders;
     private ElevatorController controlCenter;
 
     private List<Observer> observers; //TODO: see if this can replace the above two lists
 
     private static Building theBuilding = null;
 
-    private Building (int numberOfFloors, int numberOfElevators) {
+    private Building() throws ElevatorSystemException {
 
+        setFloors();
+        setElevators();
+        setRiders(new ArrayList<>());
         setObservers(new ArrayList<>());
-        setFloors(numberOfFloors);
-        setElevators(numberOfElevators);
         setControlCenter(ElevatorController.getInstance());
-
-        //TODO: Ready to run
     }
 
    public static Building getInstance() throws ElevatorSystemException {
         if(theBuilding == null) {
             synchronized(Building.class) {
                 if(theBuilding == null) {
-                    theBuilding = new Building(Integer.parseInt(ConfigurationManager.getConfig("number-of-floors")), Integer.parseInt(ConfigurationManager.getConfig("number-of-elevators")));
+                    theBuilding = new Building();
                 }
             }
         }
@@ -48,8 +47,12 @@ public class Building implements Observable {
      */
 
     @Override
-    public void addObserver(Observer o) {
-        getObservers().add(o);
+    public void addObserver(Observer o) throws ElevatorSystemException {
+        try {
+            getObservers().add(o);
+        } catch(NullPointerException npe) {
+            throw new ElevatorSystemException("INTERNAL ERROR: Observers list is null.");
+        }
     }
 
     @Override
@@ -58,47 +61,35 @@ public class Building implements Observable {
     }
 
     @Override
-    public void notifyObservers(Signal signal) {
-        for(Observer observer : observers) {
+    public void notifyObservers(Signal signal) throws ElevatorSystemException {
+        for(Observer observer : getObservers()) {
+            //System.out.println("notifying all observers in building....");
             observer.update(signal);
-        }
-        for(Floor floor : getFloors()) {
-            floor.update(signal);
-        }
-        for(Elevator elevator : getElevators()) {
-            elevator.update(signal);
+            //System.out.println("done notifying all " + getObservers().size() + " observers in building....");
         }
     }
 
     @Override
-    public int countObservers() {
-        return 0;
+    public int countObservers() throws ElevatorSystemException {
+
+        if(getObservers() == null) {
+            throw new ElevatorSystemException("INTERNAL ERROR: observers list of Building is null.");
+        }
+        return getObservers().size();
     }
 
     public void relayRequestToControlCenter(Request request) throws ElevatorSystemException {
         controlCenter.receiveRequest(request);
     }
 
-    public void start() throws ElevatorSystemException {
-        test1();
-        EventLogger.getInstance().logEvent("Test 1 completed on " + new Date());
-    }
-
-    public void stop(Signal signal) throws ElevatorSystemException {
+    public void relayNotificationToControlCenter(Notification notification) throws ElevatorSystemException {
+        controlCenter.receiveNotification(notification);
     }
 
 
     /**
      * Getters and Setters
      */
-
-    public int getNumberOfFloors() {
-        return getFloors().size();
-    }
-
-    public int getNumberOfElevators() {
-        return getElevators().size();
-    }
 
     private List<Floor> getFloors() {
         return floors;
@@ -108,60 +99,91 @@ public class Building implements Observable {
         return elevators;
     }
 
+    private List<Rider> getRiders() {
+        return riders;
+    }
+
     private List<Observer> getObservers() {
         return observers;
     }
 
-    private void setFloors(int numberOfFloors) {
-        this.floors = new ArrayList<>();
-        for(int i = 1; i <= numberOfFloors; i++) {
-            Floor f = new Floor(((i == numberOfFloors) ? false : true), ((i == 1) ? false : true));
-            this.floors.add(f);
-            addObserver(f);
-        }
-    }
-
-    private void setElevators(int numberOfElevators) {
-        this.elevators = new ArrayList<>();
-        for(int i = 1; i <= numberOfElevators; i++) {
-            Elevator e = new Elevator(Double.parseDouble(ConfigurationManager.getConfig("speed")), Integer.parseInt(ConfigurationManager.getConfig("default-floor")));
-            this.elevators.add(e);
-            addObserver(e);
-        }
+    private void setRiders(List<Rider> riders) {
+        this.riders = riders;
     }
 
     private void setObservers(List<Observer> observers) {
         this.observers = observers;
-
     }
-
     private void setControlCenter(ElevatorController controlCenter) {
         this.controlCenter = controlCenter;
     }
 
-    /**
-     * Utility methods
-     */
-
-    private void test1() throws ElevatorSystemException {
-
-        int elevatorId = getNumberOfElevators();
-        //do {
-        for (int i = 2; i <= getNumberOfFloors(); i++) {
-            Payload payload = new Payload(
-                    PayloadType.CONTROLLER_TO_ELEVATOR__GOTO_FLOOR_DIRECTION,
-                    elevatorId, i, Direction.IDLE, true);
-            notifyObservers(new Signal(ElementType.CONTROLLER, ElementType.ELEVATOR, elevatorId, payload));//TODO: delete this. for demo only
-        }
+    private void setFloors() throws ElevatorSystemException {
         try {
-            Thread.sleep(2000L);
-        } catch(Exception e) {
+            int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"));
+            this.floors = new ArrayList<>();
+            for (int i = 1; i <= numberOfFloors; i++) {
+                Floor f = new Floor(((i == numberOfFloors) ? false : true), ((i == 1) ? false : true));
+                addFloor(f);
+            }
+        } catch(NumberFormatException nfe) {
+            throw new ElevatorSystemException("Wrong configuration value for number of floors.");
+        }
+    }
 
+    private void setElevators() throws ElevatorSystemException {
+        try {
+            this.elevators = new ArrayList<>();
+            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
+            for (int i = 1; i <= numberOfElevators; i++) {
+               Elevator e = new Elevator();
+               addElevator(e);
+           }
+        } catch(NumberFormatException nfe) {
+            throw new ElevatorSystemException("Wrong configuration value for number of elevators.");
         }
-        for (int i = getNumberOfFloors() - 1; i >= 1; i--) {
-            getElevators().get(elevatorId-1).move(i);//TODO: delete this. for demo only
+    }
+
+    public int getNumberOfFloors() {
+        return getFloors().size();
+    }
+
+    public int getNumberOfElevators() {
+        return getElevators().size();
+    }
+
+    private void addFloor(Floor floor) throws ElevatorSystemException {
+        try {
+            getFloors().listIterator().add(floor);
+            getObservers().listIterator().add(floor);
+        } catch(NullPointerException npe) {
+            throw new ElevatorSystemException("INTERNAL ERROR: floors/observers list is null");
         }
-        //} while(true);
+    }
+
+    private void addElevator(Elevator elevator) throws ElevatorSystemException {
+        try {
+            getElevators().listIterator().add(elevator);
+            getObservers().listIterator().add(elevator);
+        } catch(NullPointerException npe) {
+            throw new ElevatorSystemException("INTERNAL ERROR: elevators/observers list is null");
+        }
+    }
+
+    void addRiderToElevator(int elevatorId, Observer rider) throws ElevatorSystemException {
+        for(Elevator elevator : elevators) {
+            if(elevator.getElevatorId() == elevatorId) {
+                elevator.enterRider(rider);
+            }
+        }
+    }
+
+    public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
+        Person person = new Person(originFloorNumber, destinationFloorNumber);
+        getRiders().listIterator().add(person);
+        getObservers().listIterator().add(person);
+        person.requestElevator();
+        //notifyObservers(Signal.createGeneratePersonSignal(originFloorNumber, destinationFloorNumber));
     }
 
 }

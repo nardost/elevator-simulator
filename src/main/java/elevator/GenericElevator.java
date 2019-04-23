@@ -2,10 +2,10 @@ package elevator;
 
 public interface GenericElevator {
     int getLocation();
-    double getSpeed();
+    int getSpeed();
     Direction getDirection();
     boolean areDoorsClosed();
-    void move(int floor) throws  ElevatorSystemException;
-    void openDoors();
+    void moveTo(int floor, Direction direction) throws  ElevatorSystemException;
+    void openDoors() throws ElevatorSystemException;
     void closeDoors();
 }

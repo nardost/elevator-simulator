@@ -1,24 +1,33 @@
 package elevator;
 
-class Request {
-    private Direction direction;
-    private int floor;
+enum RequestType {ELEVATOR, FLOOR}
 
-    public Request(int floor, Direction direction) throws ElevatorSystemException {
-        setDirection(direction);
+class Request {
+
+    private RequestType type;
+    private int floor;
+    private Direction direction;
+
+    public Request(RequestType type, int floor, Direction direction) throws ElevatorSystemException {
+        setType(type);
         setFloor(floor);
+        setDirection(direction);
     }
 
-    public Direction getDirection() {
-        return direction;
+    public RequestType getType() {
+        return type;
     }
 
     public int getFloor() {
         return floor;
     }
 
-    private void setDirection(Direction direction) {
-        this.direction = direction;
+    public Direction getDirection() {
+        return direction;
+    }
+
+    private void setType(RequestType type) {
+        this.type = type;
     }
 
     private void setFloor(int floor) throws ElevatorSystemException {
@@ -26,5 +35,9 @@ class Request {
             throw new ElevatorSystemException("Floor must be between 1 and " + Building.getInstance().getNumberOfFloors());
         }
         this.floor = floor;
+    }
+
+    private void setDirection(Direction direction) {
+        this.direction = direction;
     }
 }
