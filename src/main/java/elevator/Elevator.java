@@ -9,13 +9,15 @@ import static gui.ElevatorDisplay.Direction.UP;
 
 enum Direction {IDLE, UP, DOWN}
 
-class Elevator implements GenericElevator, Controllable, Observer, Observable {
+class Elevator implements GenericElevator, Controllable, Observer {
 
     private int elevatorId;
     private int speed;
     private int location;
     private Direction direction;
     private boolean doorsClosed;
+
+    private int numberOfRiders;
 
     private List<Observer> riders;
 
@@ -82,7 +84,7 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
         EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
-                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, countObservers(), UP);
+                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), UP);
                 try {
                     Thread.sleep(floorTime);
                 } catch(InterruptedException ie) {
@@ -91,7 +93,7 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
             }
         } else {
             for (int i = getLocation(); i >= floor; i--) {
-                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, countObservers(), DOWN);
+                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), DOWN);
                 try {
                     Thread.sleep(floorTime);
                 } catch(InterruptedException ie) {
@@ -165,6 +167,28 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
     }
 
     @Override
+    public void receiveControlSignal(GotoSignal signal) throws ElevatorSystemException {
+        System.out.println("I, Elevator[" + getElevatorId() + "] am ordered to go to floor " + signal.getGotoFloor());
+        getNextFloorQueue().offer(signal.getGotoFloor());
+        moveTo(signal.getGotoFloor(), signal.getDirection());
+    }
+
+    @Override
+    public void update(GotoSignal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
+        if(signal.getElevatorId() == getElevatorId()) {
+            System.out.println("Elevator[" + getElevatorId() + "] updated with goto signal to go to floor " + signal.getGotoFloor() + " - " + signal.getDirection());
+            receiveControlSignal(signal);
+        }
+    }
+
+    @Override
+    public void update(ElevatorLocationSignal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
+        if(signal.getElevatorId() == getElevatorId()) {
+            //talking about me...
+        }
+    }
+
+    @Override
     public void update(Signal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
         if(signal.getReceiver() == ElementType.ALL || (signal.getReceiver() == ElementType.ELEVATOR && signal.getReceiverId() == getElevatorId())) {
             System.out.println("Elevator[" + getElevatorId() + "] updated with signal " + signal.getPayloadType());
@@ -172,48 +196,16 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
         }
     }
 
-    /**
-     * ********* Observable methods *****************
-     */
-
-    @Override
-    public void addObserver(Observer o) throws ElevatorSystemException {
-        try {
-            getRiders().listIterator().add(o);
-        } catch (NullPointerException npe) {
-            throw new ElevatorSystemException("INTERNAL ERROR: Riders list of elevator " + getElevatorId() + " is null.");
-        }
-    }
-
-    @Override
-    public void deleteObserver(Observer o) {
-
-    }
-
-    @Override
-    public void notifyObservers(Signal signal) throws ElevatorSystemException {
-        for(Observer observer : riders) {
-            observer.update(signal);
-        }
-    }
-
-    @Override
-    public int countObservers() throws ElevatorSystemException {
-
-        if(getRiders() == null) {
-            throw new ElevatorSystemException("INTERNAL ERROR: riders list of Elevator is null.");
-        }
-        return getRiders().size();
-    }
 
     void enterRider(Observer rider) throws ElevatorSystemException {
-        addObserver(rider);
-        System.out.println(countObservers() + " riders in elevator " + getElevatorId());
-        Person person = (Person) rider;
-        person.requestFloor(person.getDestinationFloor());
+        setNumberOfRiders(1 + getNumberOfRiders());
+        System.out.println(getNumberOfRiders() + " riders in elevator " + getElevatorId());
+        //Person person = (Person) rider;
+        //person.requestFloor(person.getDestinationFloor());
     }
-    void exitRider(Rider rider) {
-        deleteObserver((Observer) rider);
+    void exitRider() throws ElevatorSystemException {
+        setNumberOfRiders(getNumberOfRiders() - 1);
+        //deleteObserver((Observer) rider);
     }
 
     int getElevatorId() {
@@ -230,6 +222,10 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
 
     private PriorityQueue<Integer> getNextFloorQueue() {
         return nextFloorQueue;
+    }
+
+    private int getNumberOfRiders() {
+        return numberOfRiders;
     }
 
     private void setElevatorId(int elevatorId) {
@@ -280,5 +276,13 @@ class Elevator implements GenericElevator, Controllable, Observer, Observable {
             throw new ElevatorSystemException("INTERNAL ERROR: null assigned in setNextFloorQueue()");
         }
         this.nextFloorQueue = queue;
+    }
+
+    private void setNumberOfRiders(int numberOfRiders) throws ElevatorSystemException {
+        int maxCapacity = 50;
+        if(numberOfRiders < 0 || numberOfRiders > maxCapacity) {
+            throw new ElevatorSystemException("Elevator capacity is between 0 and " + maxCapacity);
+        }
+        this.numberOfRiders = numberOfRiders;
     }
 }

@@ -15,6 +15,7 @@ public class Building implements Observable {
     private List<Floor> floors;
     private List<Elevator> elevators;
     private List<Rider> riders;
+
     private ElevatorController controlCenter;
 
     private List<Observer> observers; //TODO: see if this can replace the above two lists
@@ -23,16 +24,20 @@ public class Building implements Observable {
 
     private Building() throws ElevatorSystemException {
 
+        this.floors = new ArrayList<>();
+        this.elevators = new ArrayList<>();
+        this.riders = new ArrayList<>();
+        this.observers = new ArrayList<>();
+
         setFloors();
         setElevators();
-        setRiders(new ArrayList<>());
-        setObservers(new ArrayList<>());
+
         setControlCenter(ElevatorController.getInstance());
     }
 
    public static Building getInstance() throws ElevatorSystemException {
         if(theBuilding == null) {
-            synchronized(Building.class) {
+           synchronized(Building.class) {
                 if(theBuilding == null) {
                     theBuilding = new Building();
                 }
@@ -61,11 +66,23 @@ public class Building implements Observable {
     }
 
     @Override
+    public void notifyObservers(GotoSignal signal) throws ElevatorSystemException {
+        for(Observer observer : getObservers()) {
+            observer.update(signal);
+        }
+    }
+
+    @Override
+    public void notifyObservers(ElevatorLocationSignal signal) throws ElevatorSystemException {
+        for(Observer observer : getObservers()) {
+            observer.update(signal);
+        }
+    }
+
+    @Override
     public void notifyObservers(Signal signal) throws ElevatorSystemException {
         for(Observer observer : getObservers()) {
-            //System.out.println("notifying all observers in building....");
             observer.update(signal);
-            //System.out.println("done notifying all " + getObservers().size() + " observers in building....");
         }
     }
 
@@ -104,16 +121,10 @@ public class Building implements Observable {
     }
 
     private List<Observer> getObservers() {
+
         return observers;
     }
 
-    private void setRiders(List<Rider> riders) {
-        this.riders = riders;
-    }
-
-    private void setObservers(List<Observer> observers) {
-        this.observers = observers;
-    }
     private void setControlCenter(ElevatorController controlCenter) {
         this.controlCenter = controlCenter;
     }
@@ -149,22 +160,22 @@ public class Building implements Observable {
     }
 
     public int getNumberOfElevators() {
-        return getElevators().size();
+        return Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
     }
 
     private void addFloor(Floor floor) throws ElevatorSystemException {
         try {
-            getFloors().listIterator().add(floor);
-            getObservers().listIterator().add(floor);
+            getFloors().add(floor);
+            getObservers().add(floor);
         } catch(NullPointerException npe) {
-            throw new ElevatorSystemException("INTERNAL ERROR: floors/observers list is null");
+            throw new ElevatorSystemException("INTERNAL ERROR: floors/observers list is null...");
         }
     }
 
     private void addElevator(Elevator elevator) throws ElevatorSystemException {
         try {
-            getElevators().listIterator().add(elevator);
-            getObservers().listIterator().add(elevator);
+            getElevators().add(elevator);
+            getObservers().add(elevator);
         } catch(NullPointerException npe) {
             throw new ElevatorSystemException("INTERNAL ERROR: elevators/observers list is null");
         }
@@ -180,8 +191,8 @@ public class Building implements Observable {
 
     public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
         Person person = new Person(originFloorNumber, destinationFloorNumber);
-        getRiders().listIterator().add(person);
-        getObservers().listIterator().add(person);
+        getRiders().add(person);
+        getObservers().add(person);
         person.requestElevator();
         //notifyObservers(Signal.createGeneratePersonSignal(originFloorNumber, destinationFloorNumber));
     }

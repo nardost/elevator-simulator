@@ -8,8 +8,11 @@ import java.util.concurrent.TimeUnit;
 public class FloorApp {
     public static void main(String args[]) {
 
+        System.out.println("Starting up...");
         try {
+            System.out.println("Before getting instance....");
             Building building = Building.getInstance();
+            System.out.println("After getting instance....");
             int numFloor = building.getNumberOfFloors();
             int numElev = building.getNumberOfElevators();
 
@@ -19,11 +22,11 @@ public class FloorApp {
             }
 
             if(building != null) {
-                building.generatePerson(9, 1);
-                building.generatePerson(20, 1);
-                building.generatePerson(2, 1);
-                building.generatePerson(2, 18);
-                building.generatePerson(12, 16);
+                building.getInstance().generatePerson(9, 1);
+                building.getInstance().generatePerson(20, 1);
+                building.getInstance().generatePerson(2, 1);
+                building.getInstance().generatePerson(2, 18);
+                building.getInstance().generatePerson(12, 16);
             } else {
                 System.out.println("Building null");
             }

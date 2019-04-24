@@ -2,7 +2,7 @@ package elevator;
 
 import java.util.*;
 
-class Floor implements Observer, Observable, Controllable {
+class Floor implements Observer {
 
     private int floorNumber;
     private boolean upButtonActive;
@@ -30,7 +30,6 @@ class Floor implements Observer, Observable, Controllable {
         }
     }
 
-    @Override
     public void receiveControlSignal(Signal signal) throws ElevatorSystemException {
         PayloadType payloadType = signal.getPayloadType();
         if(payloadType == PayloadType.CONTROLLER_TO_FLOOR__GENERATE_PERSON) {
@@ -73,7 +72,6 @@ class Floor implements Observer, Observable, Controllable {
         }
     }
 
-    @Override
     public void sendRequestToController(Request request) throws ElevatorSystemException {
         Building.getInstance().relayRequestToControlCenter(request);
     }
@@ -108,24 +106,24 @@ class Floor implements Observer, Observable, Controllable {
         }
     }
 
-    @Override
+    
     public void addObserver(Observer o) throws ElevatorSystemException {
         addToWaitingRidersList((Person) o);
     }
 
-    @Override
+    
     public void deleteObserver(Observer o) throws ElevatorSystemException {
         //deleteFromWaitingRidersList((Person) o);
     }
 
-    @Override
+    
     public void notifyObservers(Signal signal) throws ElevatorSystemException {
         for(Observer observer : getWaitingRiders()) {
             observer.update(signal);
         }
     }
 
-    @Override
+    
     public int countObservers() throws ElevatorSystemException {
 
         if(getWaitingRiders() == null) {
@@ -140,7 +138,18 @@ class Floor implements Observer, Observable, Controllable {
      * ******** Observer methods *******************
      */
 
+    
+    public void update(GotoSignal signal) throws ElevatorSystemException { //TODO: Building updates Floor with signal. Floor acts on the signal
+    }
+
     @Override
+    public void update(ElevatorLocationSignal signal) throws ElevatorSystemException {
+        if(signal.getFloorNumber() == getFloorNumber()) {
+            //talking about me...
+        }
+    }
+
+
     public void update(Signal signal) throws ElevatorSystemException { //TODO: Building updates Floor with signal. Floor acts on the signal
         if(signal.getReceiver() == ElementType.ALL || signal.getReceiver() == ElementType.ALL_FLOORS ||
                 (signal.getReceiver() == ElementType.FLOOR && signal.getReceiverId() == getFloorNumber())) {
