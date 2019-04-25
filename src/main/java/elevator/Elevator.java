@@ -41,12 +41,6 @@ class Elevator implements GenericElevator, Controllable, Observer {
         setNextFloorQueue(new PriorityQueue<>(Comparator.naturalOrder()));//TODO: Collections.reverseOrder() dynamically on UP | DOWN
     }
 
-   public void run() throws ElevatorSystemException {
-       while(!getNextFloorQueue().isEmpty()) {
-           //moveTo(getNextFloorQueue().poll());
-        }
-    }
-
     @Override
     public int getSpeed() {
         return this.speed;
@@ -146,62 +140,48 @@ class Elevator implements GenericElevator, Controllable, Observer {
         Building.getInstance().relayRequestToControlCenter(request);
     }
 
-    /**
-     *Invoked when:
-     * - Controller sends a GOTO Floor signal to Elevator
-     *
-     * @param signal
-     * @throws ElevatorSystemException
-     */
     @Override
-    public void receiveControlSignal(Signal signal) throws ElevatorSystemException {
-        if(signal.getPayloadType() == PayloadType.CONTROLLER_TO_ELEVATOR__GOTO_FLOOR_DIRECTION) {
-            System.out.println("Elevator[" + getElevatorId() + "] ordered to go to floor " + signal.getField2());
-            getNextFloorQueue().offer(signal.getField2());
-            moveTo(signal.getField2(), signal.getField4());
-        } else if(signal.getPayloadType() == PayloadType.CONTROLLER_TO_ALL__RUN) {
-            run();
-        } else {
-            throw new ElevatorSystemException("INTERNAL ERROR: Wrong signal sent to ELEVATOR " + signal.getReceiverId());
+    public void receiveControlSignal(ControlSignal signal) throws ElevatorSystemException {
+        switch(signal.getSignalType()) {
+            case GOTO:
+                GotoSignal gotoSignal = (GotoSignal) signal;
+                if(getElevatorId() == gotoSignal.getElevatorId()) {
+                    moveTo(gotoSignal.getGotoFloor(), gotoSignal.getDirection());
+                }
+                break;
+            case RIDER_ON_BOARD:
+                RiderOnBoardSignal robSignal = (RiderOnBoardSignal) signal;
+                //TODO: if this message is for me act on it...
+                if(getElevatorId() == robSignal.getElevatorId()) {
+                    enterRider();
+                    System.out.println("Add " + robSignal.getDestinationFloor() + " to my floor queue...");
+                    enterRider();
+                    //TODO: add to queue and go...
+
+                    moveTo(robSignal.getDestinationFloor(), getDirection());
+                }
+                break;
         }
     }
-
+/**
     @Override
     public void receiveControlSignal(GotoSignal signal) throws ElevatorSystemException {
         System.out.println("I, Elevator[" + getElevatorId() + "] am ordered to go to floor " + signal.getGotoFloor());
         getNextFloorQueue().offer(signal.getGotoFloor());
         moveTo(signal.getGotoFloor(), signal.getDirection());
     }
-
+*/
     @Override
-    public void update(GotoSignal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
-        if(signal.getElevatorId() == getElevatorId()) {
-            System.out.println("Elevator[" + getElevatorId() + "] updated with goto signal to go to floor " + signal.getGotoFloor() + " - " + signal.getDirection());
+    public void update(ControlSignal signal) throws ElevatorSystemException {
+        //TODO: Elevator responds to signals of type GOTO, RIDER_ON_BOARD, ...
+        if(signal.getSignalType() == ControlSignalType.GOTO || signal.getSignalType() == ControlSignalType.RIDER_ON_BOARD) {
             receiveControlSignal(signal);
         }
     }
 
-    @Override
-    public void update(ElevatorLocationSignal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
-        if(signal.getElevatorId() == getElevatorId()) {
-            //talking about me...
-        }
-    }
-
-    @Override
-    public void update(Signal signal) throws ElevatorSystemException { //TODO: Building updates elevator with signal. Floors acts on signal
-        if(signal.getReceiver() == ElementType.ALL || (signal.getReceiver() == ElementType.ELEVATOR && signal.getReceiverId() == getElevatorId())) {
-            System.out.println("Elevator[" + getElevatorId() + "] updated with signal " + signal.getPayloadType());
-            receiveControlSignal(signal);
-        }
-    }
-
-
-    void enterRider(Observer rider) throws ElevatorSystemException {
+    void enterRider() throws ElevatorSystemException {
         setNumberOfRiders(1 + getNumberOfRiders());
         System.out.println(getNumberOfRiders() + " riders in elevator " + getElevatorId());
-        //Person person = (Person) rider;
-        //person.requestFloor(person.getDestinationFloor());
     }
     void exitRider() throws ElevatorSystemException {
         setNumberOfRiders(getNumberOfRiders() - 1);

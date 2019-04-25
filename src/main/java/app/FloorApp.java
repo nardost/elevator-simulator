@@ -10,9 +10,7 @@ public class FloorApp {
 
         System.out.println("Starting up...");
         try {
-            System.out.println("Before getting instance....");
             Building building = Building.getInstance();
-            System.out.println("After getting instance....");
             int numFloor = building.getNumberOfFloors();
             int numElev = building.getNumberOfElevators();
 

@@ -1,6 +1,6 @@
 package elevator;
 
-public class GotoSignal {
+public class GotoSignal implements ControlSignal {
 
     private int elevatorId;
     private int gotoFloor;
@@ -23,6 +23,11 @@ public class GotoSignal {
 
     public Direction getDirection() {
         return direction;
+    }
+
+    @Override
+    public ControlSignalType getSignalType() {
+        return ControlSignalType.GOTO;
     }
 
     private void setElevatorId(int elevatorId) throws ElevatorSystemException {

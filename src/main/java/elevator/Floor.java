@@ -2,7 +2,7 @@ package elevator;
 
 import java.util.*;
 
-class Floor implements Observer {
+class Floor {
 
     private int floorNumber;
     private boolean upButtonActive;
@@ -29,7 +29,7 @@ class Floor implements Observer {
             person.requestElevator();
         }
     }
-
+/**
     public void receiveControlSignal(Signal signal) throws ElevatorSystemException {
         PayloadType payloadType = signal.getPayloadType();
         if(payloadType == PayloadType.CONTROLLER_TO_FLOOR__GENERATE_PERSON) {
@@ -62,7 +62,7 @@ class Floor implements Observer {
             //
         }
     }
-
+*/
     public void addToDoneList(Rider rider) throws ElevatorSystemException {
         try {
             getDoneRiders().listIterator().add(rider);
@@ -117,7 +117,7 @@ class Floor implements Observer {
     }
 
     
-    public void notifyObservers(Signal signal) throws ElevatorSystemException {
+    public void notifyObservers(ControlSignal signal) throws ElevatorSystemException {
         for(Observer observer : getWaitingRiders()) {
             observer.update(signal);
         }
@@ -142,13 +142,12 @@ class Floor implements Observer {
     public void update(GotoSignal signal) throws ElevatorSystemException { //TODO: Building updates Floor with signal. Floor acts on the signal
     }
 
-    @Override
     public void update(ElevatorLocationSignal signal) throws ElevatorSystemException {
         if(signal.getFloorNumber() == getFloorNumber()) {
             //talking about me...
         }
     }
-
+/**
 
     public void update(Signal signal) throws ElevatorSystemException { //TODO: Building updates Floor with signal. Floor acts on the signal
         if(signal.getReceiver() == ElementType.ALL || signal.getReceiver() == ElementType.ALL_FLOORS ||
@@ -157,7 +156,7 @@ class Floor implements Observer {
             receiveControlSignal(signal);
         }
     }
-
+*/
 
     public int getFloorNumber() {
         return floorNumber;

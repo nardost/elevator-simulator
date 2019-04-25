@@ -66,8 +66,17 @@ public class Building implements Observable {
     }
 
     @Override
+    public void notifyObservers(ControlSignal signal) throws ElevatorSystemException {
+        for(Observer observer : getObservers()) {
+            System.out.println("notifying all observers in building with GotoSignal....");
+            observer.update(signal);
+        }
+    }
+/**
+    @Override
     public void notifyObservers(GotoSignal signal) throws ElevatorSystemException {
         for(Observer observer : getObservers()) {
+            System.out.println("notifying all observers in building with GotoSignal....");
             observer.update(signal);
         }
     }
@@ -80,12 +89,19 @@ public class Building implements Observable {
     }
 
     @Override
-    public void notifyObservers(Signal signal) throws ElevatorSystemException {
+    public void notifyObservers(RiderOnBoardSignal signal) throws ElevatorSystemException {
         for(Observer observer : getObservers()) {
             observer.update(signal);
         }
     }
 
+    @Override
+    public void notifyObservers(Signal signal) throws ElevatorSystemException {
+        for(Observer observer : getObservers()) {
+            observer.update(signal);
+        }
+    }
+*/
     @Override
     public int countObservers() throws ElevatorSystemException {
 
@@ -166,7 +182,7 @@ public class Building implements Observable {
     private void addFloor(Floor floor) throws ElevatorSystemException {
         try {
             getFloors().add(floor);
-            getObservers().add(floor);
+            //getObservers().add(floor);
         } catch(NullPointerException npe) {
             throw new ElevatorSystemException("INTERNAL ERROR: floors/observers list is null...");
         }
@@ -181,20 +197,11 @@ public class Building implements Observable {
         }
     }
 
-    void addRiderToElevator(int elevatorId, Observer rider) throws ElevatorSystemException {
-        for(Elevator elevator : elevators) {
-            if(elevator.getElevatorId() == elevatorId) {
-                elevator.enterRider(rider);
-            }
-        }
-    }
-
     public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
         Person person = new Person(originFloorNumber, destinationFloorNumber);
         getRiders().add(person);
         getObservers().add(person);
         person.requestElevator();
-        //notifyObservers(Signal.createGeneratePersonSignal(originFloorNumber, destinationFloorNumber));
     }
 
 }

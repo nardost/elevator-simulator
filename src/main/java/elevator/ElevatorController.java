@@ -28,7 +28,7 @@ class ElevatorController {
         return controlCenter;
     }
 
-    public void sendControlSignal(Signal signal) throws ElevatorSystemException {
+    public void sendControlSignal(ControlSignal signal) throws ElevatorSystemException {
         Building.getInstance().notifyObservers(signal);
     }
 

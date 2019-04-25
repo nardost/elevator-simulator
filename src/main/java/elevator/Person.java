@@ -42,10 +42,13 @@ class Person implements Rider, Observer {
     }
 
     @Override
-    public void boardElevator(int id) throws ElevatorSystemException {
-        Building.getInstance().addRiderToElevator(id, this);
+    public void boardElevator(int elevatorId) throws ElevatorSystemException {
+        System.out.println("Person [" + getId() + "] status = " + getStatus().toString());
         setStatus(RiderStatus.RIDING);
+        System.out.println("Person [" + getId() + "] status = " + getStatus().toString());
         setBoardingTime(System.nanoTime());
+        //TODO: send notification of boarding...
+        requestFloor(elevatorId);
     }
 
     @Override
@@ -55,13 +58,14 @@ class Person implements Rider, Observer {
     }
 
     @Override
-    public void update(GotoSignal signal) throws ElevatorSystemException  {//TODO: Floor updates Person with Signal. Person acts on signal
-        //signal intended for elevators. do nothing.
-        System.out.println("GotoSignal is for Elevators. I am a person...");
+    public void update(ControlSignal signal) throws ElevatorSystemException  {
+        //TODO: Person responds to signals of type ELEVATOR_LOCATION, ...
+        if(signal.getSignalType() == ControlSignalType.ELEVATOR_LOCATION) {
+            decideToBoardOrIgnoreElevator((ElevatorLocationSignal) signal);
+        }
     }
 
-    @Override
-    public void update(ElevatorLocationSignal signal) throws ElevatorSystemException  {//TODO: Floor updates Person with Signal. Person acts on signal
+    public void decideToBoardOrIgnoreElevator(ElevatorLocationSignal signal) throws ElevatorSystemException {
 
         int elevatorId = signal.getElevatorId();
         int floorNumber = signal.getFloorNumber();
@@ -78,11 +82,42 @@ class Person implements Rider, Observer {
 
         if(getStatus() == RiderStatus.WAITING && floorNumber == originFloor && intendedDirection == directionOfElevator) {
             //board elevator and request floor immediately.
-            System.out.println("Person [" + getId() + "] status = " + getStatus().toString());
-            setStatus(RiderStatus.RIDING);
-            System.out.println("Person [" + getId() + "] status = " + getStatus().toString());
-            setBoardingTime(System.nanoTime());
-            requestFloor(elevatorId);
+            boardElevator(elevatorId);
+            return;
+        }
+    }
+/**
+    @Override
+    public void update(GotoSignal signal) throws ElevatorSystemException  {
+        //TODO: To be deleted
+    }
+
+    @Override
+    public void update(RiderOnBoardSignal signal) throws ElevatorSystemException  {
+        //TODO: to be deleted
+    }
+
+    @Override
+    public void update(ElevatorLocationSignal signal) throws ElevatorSystemException  {//TODO: Floor updates Person with Signal. Person acts on signal
+
+        //TODO: to be deleted....
+
+        int elevatorId = signal.getElevatorId();
+        int floorNumber = signal.getFloorNumber();
+        Direction directionOfElevator = signal.getDirection();
+
+        int originFloor = getOriginFloor();
+        int destinationFloor = getDestinationFloor();
+        Direction intendedDirection = (originFloor < destinationFloor) ? Direction.UP : Direction.DOWN;
+
+        if(getStatus() == RiderStatus.RIDING && elevatorId == getElevatorBoardedOn() && floorNumber == getDestinationFloor()) {
+            exitElevator();
+            return;
+        }
+
+        if(getStatus() == RiderStatus.WAITING && floorNumber == originFloor && intendedDirection == directionOfElevator) {
+            //board elevator and request floor immediately.
+            boardElevator(elevatorId);
             return;
         }
     }
@@ -107,7 +142,7 @@ class Person implements Rider, Observer {
             }
         }
     }
-
+*/
     @Override
     public int getId() {
         return id;

@@ -1,6 +1,6 @@
 package elevator;
 
-public class ElevatorLocationSignal {
+public class ElevatorLocationSignal implements ControlSignal {
 
     private int elevatorId;
     private int floorNumber;
@@ -22,6 +22,11 @@ public class ElevatorLocationSignal {
 
     public Direction getDirection() {
         return direction;
+    }
+
+    @Override
+    public ControlSignalType getSignalType() {
+        return ControlSignalType.ELEVATOR_LOCATION;
     }
 
     private void setElevatorId(int elevatorId) throws ElevatorSystemException {

@@ -2,6 +2,13 @@ package elevator;
 
 class ControllerAlpha implements Controller {
 
+    private static int requestNumber = 0;
+
+    @Override
+    public void sendControlSignal(ControlSignal signal) throws ElevatorSystemException {
+        Building.getInstance().notifyObservers(signal);
+    }
+/**
     @Override
     public void sendControlSignal(GotoSignal signal) throws ElevatorSystemException {
         System.out.println("Controller ALPHA sending GotoSignal to " + signal.getElevatorId());
@@ -16,32 +23,43 @@ class ControllerAlpha implements Controller {
     }
 
     @Override
-    public void sendControlSignal(Signal signal) throws ElevatorSystemException {
-        System.out.println("Controller ALPHA sending signal " + signal.getPayloadType());
+    public void sendControlSignal(RiderOnBoardSignal signal) throws ElevatorSystemException {
+        System.out.println("Controller ALPHA announcing location of elevator " + signal.getElevatorId());
         Building.getInstance().notifyObservers(signal);
     }
 
     @Override
+    public void sendControlSignal(Signal signal) throws ElevatorSystemException {
+        System.out.println("Controller ALPHA sending signal " + signal.getPayloadType());
+        Building.getInstance().notifyObservers(signal);
+    }
+*/
+    @Override
     public void receiveRequest(Request request) throws ElevatorSystemException  {
         //TODO: Process request and sendControlSignal()
-        //TODO: Alpha always picks elevator 1.
+
         switch(request.getType()) {
             case ELEVATOR:
-                int elevatorId = 2; // elevator selected
+                int selectedElevatorId = 1 + (requestNumber++ % 4); //This is the elevator selected by Controller.
+                int requestedFromFloorNumber = request.getFloor(); //This is the floor from which elevator request is made.
+                Direction directionRequested = request.getDirection();
+
                 //TODO: set status of elevator as busy. on next request pick another elevator....
                 System.out.println("Controller ALPHA received an Elevator Request from " + request.getFloor() + " to go " + request.getDirection().toString());
                 //sendControlSignal(Signal.createGoToFloorSignal(2, request.getFloor(), request.getDirection()));
-                GotoSignal signal = new GotoSignal(elevatorId, request.getFloor(), request.getDirection());
-                System.out.println("receiveRequest - [GOTO FLOOR=" + signal.getGotoFloor() + ", ELEVATOR=" + signal.getElevatorId() + ", DIRECTION=" + signal.getDirection() + "]");
-                sendControlSignal(signal);
+                ControlSignal gotoSignal = new GotoSignal(selectedElevatorId, requestedFromFloorNumber, directionRequested);
+                //System.out.println("receiveRequest - [GOTO FLOOR=" + gotoSignal.getGotoFloor() + ", ELEVATOR=" + gotoSignal.getElevatorId() + ", DIRECTION=" + gotoSignal.getDirection() + "]");
+                sendControlSignal(gotoSignal);
                 break;
             case FLOOR:
-                elevatorId = request.getElevatorId();
-                int destination = request.getFloor();
-                Direction direction = request.getDirection();
+                int floorRequestedFromElevatorId = request.getElevatorId(); //This is the elevator from which a floor request is made.
+                int requestedDestinationFloor = request.getFloor();
+                Direction requestedDirection = request.getDirection();
                 //TODO: Update queue of elevator. numberOfRiders++
                 //EnterRiderSignal signal = new EnterRiderSignal(elevatorId, destination);
-                System.out.println("Controller ALPHA received a Floor Request to " + request.getFloor());
+                ControlSignal robSignal = new RiderOnBoardSignal(floorRequestedFromElevatorId, requestedDestinationFloor);
+                //System.out.println("Controller ALPHA received a Floor Request to " + request.getFloor());
+                sendControlSignal(robSignal);
         }
     }
 
