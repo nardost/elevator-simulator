@@ -12,27 +12,17 @@ import java.util.List;
  */
 public class Building implements Observable {
 
-    private List<Floor> floors;
-    private List<Elevator> elevators;
-    private List<Rider> riders;
+    private List<Floor> floors = new ArrayList<>(); //TODO: no longer needed...
+    private List<Elevator> elevators = new ArrayList<>();
+    private List<Rider> riders = new ArrayList<>();
+    private List<Observer> observers = new ArrayList<>(); //TODO: see if this can replace the above two lists
 
-    private ElevatorController controlCenter;
-
-    private List<Observer> observers; //TODO: see if this can replace the above two lists
-
+    private ElevatorController controlCenter = ElevatorController.getInstance();
     private static Building theBuilding = null;
 
     private Building() throws ElevatorSystemException {
-
-        this.floors = new ArrayList<>();
-        this.elevators = new ArrayList<>();
-        this.riders = new ArrayList<>();
-        this.observers = new ArrayList<>();
-
         setFloors();
         setElevators();
-
-        setControlCenter(ElevatorController.getInstance());
     }
 
    public static Building getInstance() throws ElevatorSystemException {
@@ -47,8 +37,7 @@ public class Building implements Observable {
     }
 
     /**
-     * ********* Observable methods ******************************
-     *
+     * Observable methods
      */
 
     @Override
@@ -72,36 +61,7 @@ public class Building implements Observable {
             observer.update(signal);
         }
     }
-/**
-    @Override
-    public void notifyObservers(GotoSignal signal) throws ElevatorSystemException {
-        for(Observer observer : getObservers()) {
-            System.out.println("notifying all observers in building with GotoSignal....");
-            observer.update(signal);
-        }
-    }
 
-    @Override
-    public void notifyObservers(ElevatorLocationSignal signal) throws ElevatorSystemException {
-        for(Observer observer : getObservers()) {
-            observer.update(signal);
-        }
-    }
-
-    @Override
-    public void notifyObservers(RiderOnBoardSignal signal) throws ElevatorSystemException {
-        for(Observer observer : getObservers()) {
-            observer.update(signal);
-        }
-    }
-
-    @Override
-    public void notifyObservers(Signal signal) throws ElevatorSystemException {
-        for(Observer observer : getObservers()) {
-            observer.update(signal);
-        }
-    }
-*/
     @Override
     public int countObservers() throws ElevatorSystemException {
 
@@ -141,10 +101,6 @@ public class Building implements Observable {
         return observers;
     }
 
-    private void setControlCenter(ElevatorController controlCenter) {
-        this.controlCenter = controlCenter;
-    }
-
     private void setFloors() throws ElevatorSystemException {
         try {
             int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"));
@@ -181,7 +137,7 @@ public class Building implements Observable {
 
     private void addFloor(Floor floor) throws ElevatorSystemException {
         try {
-            getFloors().add(floor);
+            getFloors().add(floor); //TODO: floors are no longer needed... new design.
             //getObservers().add(floor);
         } catch(NullPointerException npe) {
             throw new ElevatorSystemException("INTERNAL ERROR: floors/observers list is null...");

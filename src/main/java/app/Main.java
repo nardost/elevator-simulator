@@ -1,6 +1,8 @@
 
-package elevator;
+package app;
 
+import elevator.Building;
+import elevator.ElevatorSystemException;
 import gui.ElevatorDisplay;
 import static gui.ElevatorDisplay.Direction.*;
 

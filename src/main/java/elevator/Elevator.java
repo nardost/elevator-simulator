@@ -78,15 +78,18 @@ class Elevator implements GenericElevator, Controllable, Observer {
         EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
+                //TODO: Before moving to the next floor, check if there is a new stop by...
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), UP);
                 try {
                     Thread.sleep(floorTime);
                 } catch(InterruptedException ie) {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
+
             }
         } else {
             for (int i = getLocation(); i >= floor; i--) {
+                //TODO: Before moving to the next floor, check if there is a new stop by...
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), DOWN);
                 try {
                     Thread.sleep(floorTime);
@@ -155,22 +158,15 @@ class Elevator implements GenericElevator, Controllable, Observer {
                 if(getElevatorId() == robSignal.getElevatorId()) {
                     enterRider();
                     System.out.println("Add " + robSignal.getDestinationFloor() + " to my floor queue...");
-                    enterRider();
                     //TODO: add to queue and go...
-
+                    /**getNextFloorQueue().offer(robSignal.getDestinationFloor());*/
+                    /**moveTo(getNextFloorQueue().poll(), getDirection())*/
                     moveTo(robSignal.getDestinationFloor(), getDirection());
                 }
                 break;
         }
     }
-/**
-    @Override
-    public void receiveControlSignal(GotoSignal signal) throws ElevatorSystemException {
-        System.out.println("I, Elevator[" + getElevatorId() + "] am ordered to go to floor " + signal.getGotoFloor());
-        getNextFloorQueue().offer(signal.getGotoFloor());
-        moveTo(signal.getGotoFloor(), signal.getDirection());
-    }
-*/
+
     @Override
     public void update(ControlSignal signal) throws ElevatorSystemException {
         //TODO: Elevator responds to signals of type GOTO, RIDER_ON_BOARD, ...
