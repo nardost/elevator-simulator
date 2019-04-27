@@ -2,7 +2,6 @@ package elevator;
 
 public class SystemConfiguration {
 
-    //TODO: this should be changed... read config from JSON ...
     private static final int NUMBER_OF_FLOORS = 20;
     private static final int NUMBER_OF_ELEVATORS = 4;
     private static final int FLOOR_TIME = 1;

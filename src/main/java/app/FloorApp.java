@@ -20,17 +20,26 @@ public class FloorApp {
             }
 
             if(building != null) {
-                building.getInstance().generatePerson(9, 1);
-                building.getInstance().generatePerson(20, 1);
-                building.getInstance().generatePerson(2, 1);
-                building.getInstance().generatePerson(2, 18);
-                building.getInstance().generatePerson(12, 16);
+                for(int i = 0; i < 40; i++) {
+                    if(i == 0) {
+                        building.getInstance().generatePerson(1, 10);
+                    }
+                    Thread.sleep(1000L);
+                    if(i == 1) {
+                        building.getInstance().generatePerson(1, 11);
+                    }
+                    //building.getInstance().generatePerson(2, 1);
+                    //building.getInstance().generatePerson(2, 18);
+                    //building.getInstance().generatePerson(12, 16);
+                }
             } else {
                 System.out.println("Building null");
             }
 
         } catch(ElevatorSystemException ese) {
             System.out.println(ese.getMessage());
+        } catch(InterruptedException ie) {
+            //
         }
 
     }

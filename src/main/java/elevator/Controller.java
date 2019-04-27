@@ -1,16 +1,17 @@
 package elevator;
 
+import java.util.Hashtable;
+import java.util.PriorityQueue;
+
 /**
  *
  * @author ntessema
  *
  */
 public interface Controller {
-    void sendControlSignal(ControlSignal signal) throws ElevatorSystemException;
-    /**void sendControlSignal(GotoSignal signal) throws ElevatorSystemException;
-    void sendControlSignal(ElevatorLocationSignal signal) throws ElevatorSystemException;
-    void sendControlSignal(RiderOnBoardSignal signal) throws ElevatorSystemException;
-    void sendControlSignal(Signal signal) throws ElevatorSystemException;*/
-    void receiveRequest(Request request) throws ElevatorSystemException;
-    void receiveNotification(Notification notification) throws ElevatorSystemException;
+    void selectElevatorAndSendToFloor(int toFloorNumber, Direction desiredDirection) throws ElevatorSystemException;
+    void announceLocationOfElevator(Message message) throws ElevatorSystemException;
+    void executeElevatorRequest(int elevatorId, PriorityQueue<Integer> queue) throws ElevatorSystemException;
+    void executeFloorRequest(Hashtable<Integer, Direction> table) throws ElevatorSystemException;
+    void receiveLocationUpdateMessage(Message message) throws ElevatorSystemException;
 }

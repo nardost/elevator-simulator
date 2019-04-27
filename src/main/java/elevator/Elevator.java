@@ -7,9 +7,9 @@ import java.util.*;
 import static gui.ElevatorDisplay.Direction.DOWN;
 import static gui.ElevatorDisplay.Direction.UP;
 
-enum Direction {IDLE, UP, DOWN}
+enum Direction {IDLE, UP, DOWN};
 
-class Elevator implements GenericElevator, Controllable, Observer {
+class Elevator implements GenericElevator {
 
     private int elevatorId;
     private int speed;
@@ -19,26 +19,21 @@ class Elevator implements GenericElevator, Controllable, Observer {
 
     private int numberOfRiders;
 
-    private List<Observer> riders;
-
-    private PriorityQueue<Integer> nextFloorQueue;
+    private PriorityQueue<Integer> nextFloorQueue = new PriorityQueue<>(Comparator.naturalOrder());
 
     private static int instanceCounter = 0;
 
-    public Elevator() throws ElevatorSystemException {
+    Elevator() throws ElevatorSystemException {
 
         setElevatorId(++instanceCounter);
         setSpeed();
         setDirection(Direction.IDLE);
         setDoorsClosed(true);
-        setRiders(new ArrayList<>());
         try {
             setLocation(Integer.parseInt(SystemConfiguration.getConfig("default-floor")));
         } catch(NumberFormatException nfe) {
             throw new ElevatorSystemException("Wrong configuration value for default floor.");
         }
-
-        setNextFloorQueue(new PriorityQueue<>(Comparator.naturalOrder()));//TODO: Collections.reverseOrder() dynamically on UP | DOWN
     }
 
     @Override
@@ -61,21 +56,17 @@ class Elevator implements GenericElevator, Controllable, Observer {
         return this.location;
     }
 
-    @Override
-    public void moveTo(int floor, Direction direction) throws ElevatorSystemException {
+    public void move(Direction direction) throws ElevatorSystemException {
 
-        closeDoors();
-
+        int floor = getNextStop();
         setDirection(direction);
 
-        if(floor == getLocation()) {
-            System.out.println("Elevator is already on the same floor.");
-            openDoors();
-            return;
+        if(!areDoorsClosed()) {
+            closeDoors();
         }
 
         long floorTime = 1000L * (long) getSpeed();
-        EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " moving to floor " + floor);
+
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
                 //TODO: Before moving to the next floor, check if there is a new stop by...
@@ -85,7 +76,9 @@ class Elevator implements GenericElevator, Controllable, Observer {
                 } catch(InterruptedException ie) {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
-
+                setLocation(i);
+                Message locationUpdateMessage = new LocationUpdateMessage(getElevatorId(), getLocation(), getDirection());
+                Building.getInstance().relayLocationUpdateMessageToControlCenter(locationUpdateMessage);//new Notification(getElevatorId(), i, getDirection()));
             }
         } else {
             for (int i = getLocation(); i >= floor; i--) {
@@ -96,15 +89,11 @@ class Elevator implements GenericElevator, Controllable, Observer {
                 } catch(InterruptedException ie) {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
+                setLocation(i);
+                Message locationUpdateMessage = new LocationUpdateMessage(getElevatorId(), getLocation(), getDirection());
+                Building.getInstance().relayLocationUpdateMessageToControlCenter(locationUpdateMessage);
             }
         }
-
-        openDoors();
-
-        EventLogger.getInstance().logEvent(new Date() + " Elevator " + getElevatorId() + " at floor " + floor);
-
-        setLocation(floor);
-        Building.getInstance().relayNotificationToControlCenter(new Notification(getElevatorId(), getLocation(), getDirection()));
     }
 
     @Override
@@ -112,7 +101,6 @@ class Elevator implements GenericElevator, Controllable, Observer {
         setDoorsClosed(false);
         try {
             long doorTime = Long.parseLong(SystemConfiguration.getConfig("door-time"));
-            System.out.print(" : doors open");
             ElevatorDisplay.getInstance().openDoors(getElevatorId());
             Thread.sleep(doorTime * 1000L);
         } catch(InterruptedException ie) {
@@ -126,77 +114,21 @@ class Elevator implements GenericElevator, Controllable, Observer {
     public void closeDoors() {
         setDoorsClosed(true);
         ElevatorDisplay.getInstance().closeDoors(getElevatorId());
-        System.out.println(" : doors closed");
-    }
-
-
-    /**
-     * Invoked when:
-     *  - Person enters Elevator and requests to go to Floor
-     *  - Elevator notifies Controller of its current location
-     *
-     * @param request
-     * @throws ElevatorSystemException
-     */
-    @Override
-    public void sendRequestToController(Request request) throws ElevatorSystemException {
-        Building.getInstance().relayRequestToControlCenter(request);
-    }
-
-    @Override
-    public void receiveControlSignal(ControlSignal signal) throws ElevatorSystemException {
-        switch(signal.getSignalType()) {
-            case GOTO:
-                GotoSignal gotoSignal = (GotoSignal) signal;
-                if(getElevatorId() == gotoSignal.getElevatorId()) {
-                    moveTo(gotoSignal.getGotoFloor(), gotoSignal.getDirection());
-                }
-                break;
-            case RIDER_ON_BOARD:
-                RiderOnBoardSignal robSignal = (RiderOnBoardSignal) signal;
-                //TODO: if this message is for me act on it...
-                if(getElevatorId() == robSignal.getElevatorId()) {
-                    enterRider();
-                    System.out.println("Add " + robSignal.getDestinationFloor() + " to my floor queue...");
-                    //TODO: add to queue and go...
-                    /**getNextFloorQueue().offer(robSignal.getDestinationFloor());*/
-                    /**moveTo(getNextFloorQueue().poll(), getDirection())*/
-                    moveTo(robSignal.getDestinationFloor(), getDirection());
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void update(ControlSignal signal) throws ElevatorSystemException {
-        //TODO: Elevator responds to signals of type GOTO, RIDER_ON_BOARD, ...
-        if(signal.getSignalType() == ControlSignalType.GOTO || signal.getSignalType() == ControlSignalType.RIDER_ON_BOARD) {
-            receiveControlSignal(signal);
-        }
     }
 
     void enterRider() throws ElevatorSystemException {
         setNumberOfRiders(1 + getNumberOfRiders());
-        System.out.println(getNumberOfRiders() + " riders in elevator " + getElevatorId());
+        Building.print(getNumberOfRiders() + " riders in elevator " + getElevatorId());
     }
     void exitRider() throws ElevatorSystemException {
         setNumberOfRiders(getNumberOfRiders() - 1);
-        //deleteObserver((Observer) rider);
     }
 
     int getElevatorId() {
         return elevatorId;
     }
 
-    private boolean isDoorsClosed() {
-        return doorsClosed;
-    }
-
-    private List<Observer> getRiders() {
-        return riders;
-    }
-
-    private PriorityQueue<Integer> getNextFloorQueue() {
+    PriorityQueue<Integer> getNextFloorQueue() {
         return nextFloorQueue;
     }
 
@@ -216,7 +148,7 @@ class Elevator implements GenericElevator, Controllable, Observer {
         }
     }
 
-    private void setLocation(int location) throws ElevatorSystemException {
+    void setLocation(int location) throws ElevatorSystemException {
         //NOTE: I used Building.getInstance().getNumberOfFloors() and got stuck for hours.
         if(location < 1 || location > Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"))) {
             throw new ElevatorSystemException("Floors can only be 1 to " + Integer.parseInt(SystemConfiguration.getConfig("number-of-floors")));
@@ -224,16 +156,12 @@ class Elevator implements GenericElevator, Controllable, Observer {
         this.location = location;
     }
 
-    private void setRiders(List<Observer> riders) {
-        this.riders = riders;
-    }
+    void setIdle() throws ElevatorSystemException {
 
-    public void setIdle() throws ElevatorSystemException {
+        Building.print("Idling at floor " + getLocation());
+
         try {
-            System.out.println("Idling at floor " + getLocation());
             Thread.sleep(Long.parseLong(SystemConfiguration.getConfig("time-out")) * 1000L);
-            int next = (getNextFloorQueue().isEmpty())? Integer.parseInt(SystemConfiguration.getConfig("default-floor")) : getNextFloorQueue().peek();
-            moveTo(next, Direction.IDLE);
         } catch(InterruptedException ie) {
             throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
         }
@@ -247,18 +175,20 @@ class Elevator implements GenericElevator, Controllable, Observer {
         this.doorsClosed = doorsClosed;
     }
 
-    private void setNextFloorQueue(PriorityQueue<Integer> queue) throws ElevatorSystemException {
-        if(queue == null) {
-            throw new ElevatorSystemException("INTERNAL ERROR: null assigned in setNextFloorQueue()");
-        }
-        this.nextFloorQueue = queue;
-    }
-
     private void setNumberOfRiders(int numberOfRiders) throws ElevatorSystemException {
         int maxCapacity = 50;
         if(numberOfRiders < 0 || numberOfRiders > maxCapacity) {
             throw new ElevatorSystemException("Elevator capacity is between 0 and " + maxCapacity);
         }
         this.numberOfRiders = numberOfRiders;
+    }
+    void addNextStop(int next) {
+
+        getNextFloorQueue().offer(next);
+        Building.print("Next stops for Elevator[" + getElevatorId() + "] is: " + getNextFloorQueue().peek());
+    }
+
+    int getNextStop() {
+        return getNextFloorQueue().poll();
     }
 }

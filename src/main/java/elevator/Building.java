@@ -2,6 +2,7 @@ package elevator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author ntessema
@@ -12,17 +13,17 @@ import java.util.List;
  */
 public class Building implements Observable {
 
-    private List<Floor> floors = new ArrayList<>(); //TODO: no longer needed...
-    private List<Elevator> elevators = new ArrayList<>();
-    private List<Rider> riders = new ArrayList<>();
-    private List<Observer> observers = new ArrayList<>(); //TODO: see if this can replace the above two lists
+    private int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"));
+    private int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
+    private static long zeroTime;
+
+    private List<Observer> observers = new ArrayList<>();
 
     private ElevatorController controlCenter = ElevatorController.getInstance();
     private static Building theBuilding = null;
 
     private Building() throws ElevatorSystemException {
-        setFloors();
-        setElevators();
+        zeroTime = System.nanoTime();
     }
 
    public static Building getInstance() throws ElevatorSystemException {
@@ -55,10 +56,9 @@ public class Building implements Observable {
     }
 
     @Override
-    public void notifyObservers(ControlSignal signal) throws ElevatorSystemException {
+    public void notifyObservers(Message message) throws ElevatorSystemException {
         for(Observer observer : getObservers()) {
-            System.out.println("notifying all observers in building with GotoSignal....");
-            observer.update(signal);
+            observer.update(message);
         }
     }
 
@@ -71,93 +71,65 @@ public class Building implements Observable {
         return getObservers().size();
     }
 
-    public void relayRequestToControlCenter(Request request) throws ElevatorSystemException {
-        controlCenter.receiveRequest(request);
+    public void relayFloorRequestToControlCenter(Message message) throws ElevatorSystemException {
+        controlCenter.receiveFloorRequest(message);
     }
 
-    public void relayNotificationToControlCenter(Notification notification) throws ElevatorSystemException {
-        controlCenter.receiveNotification(notification);
+    public void relayElevatorRequestToControlCenter(Message message) throws ElevatorSystemException {
+        controlCenter.receiveElevatorRequest(message);
     }
 
-
-    /**
-     * Getters and Setters
-     */
-
-    private List<Floor> getFloors() {
-        return floors;
+    public void relayLocationUpdateMessageToControlCenter(Message locationUpdateMessage) throws ElevatorSystemException {
+        controlCenter.receiveLocationUpdateMessage(locationUpdateMessage);
     }
 
-    private List<Elevator> getElevators() {
-        return elevators;
+    public void relayEnterRiderIntoElevatorMessage(Message message) throws ElevatorSystemException {
+        controlCenter.enterRider(message);
+    }
+    public void relayExitRiderFromElevatorMessage(int elevatorId) throws ElevatorSystemException {
+        controlCenter.exitRider(elevatorId);
+    }
+    public void relayDeleteFloorRequestMessage(Message message) {
+        FloorRequest floorRequest = (FloorRequest) message;
+        controlCenter.removeFloorRequest(floorRequest.getFromFloorNumber(), floorRequest.getDesiredDirection());
     }
 
-    private List<Rider> getRiders() {
-        return riders;
-    }
 
     private List<Observer> getObservers() {
 
         return observers;
     }
 
-    private void setFloors() throws ElevatorSystemException {
-        try {
-            int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"));
-            this.floors = new ArrayList<>();
-            for (int i = 1; i <= numberOfFloors; i++) {
-                Floor f = new Floor(((i == numberOfFloors) ? false : true), ((i == 1) ? false : true));
-                addFloor(f);
-            }
-        } catch(NumberFormatException nfe) {
-            throw new ElevatorSystemException("Wrong configuration value for number of floors.");
-        }
-    }
-
-    private void setElevators() throws ElevatorSystemException {
-        try {
-            this.elevators = new ArrayList<>();
-            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
-            for (int i = 1; i <= numberOfElevators; i++) {
-               Elevator e = new Elevator();
-               addElevator(e);
-           }
-        } catch(NumberFormatException nfe) {
-            throw new ElevatorSystemException("Wrong configuration value for number of elevators.");
-        }
-    }
-
     public int getNumberOfFloors() {
-        return getFloors().size();
+        return this.numberOfFloors;
     }
 
     public int getNumberOfElevators() {
-        return Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
+        return this.numberOfElevators;
     }
 
-    private void addFloor(Floor floor) throws ElevatorSystemException {
-        try {
-            getFloors().add(floor); //TODO: floors are no longer needed... new design.
-            //getObservers().add(floor);
-        } catch(NullPointerException npe) {
-            throw new ElevatorSystemException("INTERNAL ERROR: floors/observers list is null...");
-        }
-    }
-
-    private void addElevator(Elevator elevator) throws ElevatorSystemException {
-        try {
-            getElevators().add(elevator);
-            getObservers().add(elevator);
-        } catch(NullPointerException npe) {
-            throw new ElevatorSystemException("INTERNAL ERROR: elevators/observers list is null");
-        }
-    }
 
     public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
         Person person = new Person(originFloorNumber, destinationFloorNumber);
-        getRiders().add(person);
         getObservers().add(person);
-        person.requestElevator();
+        person.sendMeAnElevator();
+    }
+
+    public static long getZeroTime() {
+        return zeroTime;
+    }
+
+    public static String formatElapsedTime(long nanoTime) {
+        long elapsedTime = nanoTime - getZeroTime();
+        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
+        long s = elapsedSeconds % 60;
+        long m = ((elapsedSeconds - s) % 3600) / 60;
+        long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
+        return String.format("%02d:%02d:%02d", h, m, s);
+    }
+
+    public static void print(String msg) {
+        System.out.println(formatElapsedTime(System.nanoTime()) + " " + msg);
     }
 
 }

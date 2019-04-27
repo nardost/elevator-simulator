@@ -5,7 +5,6 @@ public interface GenericElevator {
     int getSpeed();
     Direction getDirection();
     boolean areDoorsClosed();
-    void moveTo(int floor, Direction direction) throws  ElevatorSystemException;
     void openDoors() throws ElevatorSystemException;
     void closeDoors();
 }
