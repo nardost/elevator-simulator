@@ -21,7 +21,7 @@ class ElevatorController {
     private static ElevatorController controlCenter;
 
     private ElevatorController() throws ElevatorSystemException {
-
+        SystemConfiguration.initializeSystemConfiguration();//TODO: Important!!!
         setController(ControllerFactory.createController());
         setElevators();
     }
@@ -54,19 +54,20 @@ class ElevatorController {
 
     void setIdleAndReturnToDefaultFloor(int elevatorId) throws ElevatorSystemException {
         Elevator e = getElevatorById(elevatorId);
+        //e.closeDoors();
         e.setIdle();
-        e.addNextStop(Integer.parseInt(SystemConfiguration.getConfig("default-floor")));
+        e.addNextStop(Integer.parseInt(SystemConfiguration.getConfiguration("default-floor")));
         e.move(Direction.IDLE);
     }
 
-    void saveFloorRequest(int fromFloorNumber, Direction direction) {
+    void saveFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
         Hashtable<Integer, Direction> table = getFloorRequests();
         if(table.get(fromFloorNumber) != direction) {
             table.put(fromFloorNumber, direction);
             Building.print("Floor Request (" + fromFloorNumber + ", " + direction + ") saved.");
         }
     }
-    void removeFloorRequest(int fromFloorNumber, Direction direction) {
+    void removeFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
         Hashtable<Integer, Direction> table = getFloorRequests();
         if(table.containsKey(fromFloorNumber)) {
             table.remove(fromFloorNumber, direction);
@@ -115,7 +116,7 @@ class ElevatorController {
     private void setElevators() throws ElevatorSystemException {
         try {
             this.elevators = new ArrayList<>();
-            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
+            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("number-of-elevators"));
             for (int i = 1; i <= numberOfElevators; i++) {
                 Elevator e = new Elevator();
                 addElevator(e);

@@ -26,7 +26,7 @@ public class FloorApp {
                     }
                     Thread.sleep(1000L);
                     if(i == 1) {
-                        building.getInstance().generatePerson(1, 11);
+                        building.getInstance().generatePerson(18, 11);
                     }
                     //building.getInstance().generatePerson(2, 1);
                     //building.getInstance().generatePerson(2, 18);

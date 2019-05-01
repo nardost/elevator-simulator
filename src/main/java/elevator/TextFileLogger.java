@@ -11,7 +11,7 @@ class TextFileLogger implements Logger {
     private String logFile;
 
     TextFileLogger() throws ElevatorSystemException {
-        logFile = SystemConfiguration.getConfig("log-file");
+        logFile = SystemConfiguration.getConfiguration("log-file");
         try {
             File file = new File(logFile);
             file.createNewFile();

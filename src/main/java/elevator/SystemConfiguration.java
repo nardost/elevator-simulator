@@ -1,43 +1,91 @@
 package elevator;
 
+import java.util.Hashtable;
+
 public class SystemConfiguration {
 
-    private static final int NUMBER_OF_FLOORS = 20;
-    private static final int NUMBER_OF_ELEVATORS = 4;
-    private static final int FLOOR_TIME = 1;
-    private static final int DOOR_TIME = 2;
-    private static final int TIME_OUT = 10;
-    private static final int DEFAULT_FLOOR = 1;
-    private static final String LOGGER = "file";
-    private static final String LOG_FILE = "logs/events-log.txt";
-    private static final String CONTROLLER = "alpha";
-    private static final String RIDER_GENERATOR = "test1";
+    private static Hashtable<String, String> configurationTable = null;
 
-    public static String getConfig(String config) {
+    private SystemConfiguration() throws ElevatorSystemException {
+        configurationTable = new Hashtable<>();
+        setConfig("logger");
+        setConfig("log-file");
+        setConfig("controller");
+        setConfig("number-of-floors");
+        setConfig("number-of-elevators");
+        setConfig("floor-time");
+        setConfig("door-time");
+        setConfig("time-out");
+        setConfig("default-floor");
+        setConfig("rider-generator");
+    }
+
+    public static void initializeSystemConfiguration() throws ElevatorSystemException {
+        if(configurationTable == null) {
+            synchronized (SystemConfiguration.class) {
+                if(configurationTable == null) {
+                    new SystemConfiguration();
+                }
+            }
+        }
+    }
+
+    private void setConfig(String config) throws ElevatorSystemException {
+
+        //TODO: get config values from a JSON / XML file here.
+
+        final int NUMBER_OF_FLOORS = 20;
+        final int NUMBER_OF_ELEVATORS = 4;
+        final int FLOOR_TIME = 1;
+        final int DOOR_TIME = 2;
+        final int TIME_OUT = 10;
+        final int DEFAULT_FLOOR = 1;
+        final String LOGGER = "file";
+        final String LOG_FILE = "logs/events-log.txt";
+        final String CONTROLLER = "alpha";
+        final String RIDER_GENERATOR = "test1";
+
+        String value;
+
         switch (config) {
             case "logger":
-                return LOGGER;
+                value = LOGGER;
+                break;
             case "log-file":
-                return LOG_FILE;
+                value = LOG_FILE;
+                break;
             case "controller":
-                return CONTROLLER;
+                value = CONTROLLER;
+                break;
             case "number-of-floors":
-                return Integer.toString(NUMBER_OF_FLOORS);
+                value = Integer.toString(NUMBER_OF_FLOORS);
+                break;
             case "number-of-elevators":
-                return Integer.toString(NUMBER_OF_ELEVATORS);
+                value = Integer.toString(NUMBER_OF_ELEVATORS);
+                break;
             case "floor-time":
-                return Integer.toString(FLOOR_TIME);
+                value = Integer.toString(FLOOR_TIME);
+                break;
             case "door-time":
-                return Integer.toString(DOOR_TIME);
+                value = Integer.toString(DOOR_TIME);
+                break;
             case "time-out":
-                return Integer.toString(TIME_OUT);
+                value = Integer.toString(TIME_OUT);
+                break;
             case "default-floor":
-                return Integer.toString(DEFAULT_FLOOR);
+                value = Integer.toString(DEFAULT_FLOOR);
+                break;
             case "rider-generator":
-                return RIDER_GENERATOR;
+                value = RIDER_GENERATOR;
+                break;
             default:
-                return "";
+                throw new ElevatorSystemException("No configuration found for " + config);
         }
+        configurationTable.put(config, value);
+    }
+
+    public static String getConfiguration(String config) {
+        return configurationTable.get(config);
     }
 
 }

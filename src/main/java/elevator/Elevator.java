@@ -24,16 +24,31 @@ class Elevator implements GenericElevator {
     private static int instanceCounter = 0;
 
     Elevator() throws ElevatorSystemException {
-
+        SystemConfiguration.initializeSystemConfiguration();//TODO: Important!!!
         setElevatorId(++instanceCounter);
         setSpeed();
         setDirection(Direction.IDLE);
         setDoorsClosed(true);
         try {
-            setLocation(Integer.parseInt(SystemConfiguration.getConfig("default-floor")));
+            setLocation(Integer.parseInt(SystemConfiguration.getConfiguration("default-floor")));
         } catch(NumberFormatException nfe) {
             throw new ElevatorSystemException("Wrong configuration value for default floor.");
         }
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if(object instanceof Elevator) {
+            if (getElevatorId() == ((Elevator) object).getElevatorId()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getElevatorId());
     }
 
     @Override
@@ -59,14 +74,11 @@ class Elevator implements GenericElevator {
     public void move(Direction direction) throws ElevatorSystemException {
 
         int floor = getNextStop();
-        setDirection(direction);
-
-        if(!areDoorsClosed()) {
-            closeDoors();
-        }
-
         long floorTime = 1000L * (long) getSpeed();
 
+        openDoors();
+        closeDoors();
+        setDirection(direction);
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
                 //TODO: Before moving to the next floor, check if there is a new stop by...
@@ -78,7 +90,7 @@ class Elevator implements GenericElevator {
                 }
                 setLocation(i);
                 Message locationUpdateMessage = new LocationUpdateMessage(getElevatorId(), getLocation(), getDirection());
-                Building.getInstance().relayLocationUpdateMessageToControlCenter(locationUpdateMessage);//new Notification(getElevatorId(), i, getDirection()));
+                Building.getInstance().relayLocationUpdateMessageToControlCenter(locationUpdateMessage);
             }
         } else {
             for (int i = getLocation(); i >= floor; i--) {
@@ -94,13 +106,14 @@ class Elevator implements GenericElevator {
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(locationUpdateMessage);
             }
         }
+        openDoors();
     }
 
     @Override
     public void openDoors() throws ElevatorSystemException {
         setDoorsClosed(false);
         try {
-            long doorTime = Long.parseLong(SystemConfiguration.getConfig("door-time"));
+            long doorTime = Long.parseLong(SystemConfiguration.getConfiguration("door-time"));
             ElevatorDisplay.getInstance().openDoors(getElevatorId());
             Thread.sleep(doorTime * 1000L);
         } catch(InterruptedException ie) {
@@ -142,7 +155,7 @@ class Elevator implements GenericElevator {
 
     private void setSpeed() throws ElevatorSystemException {
         try {
-            this.speed = Integer.parseInt(SystemConfiguration.getConfig("floor-time"));
+            this.speed = Integer.parseInt(SystemConfiguration.getConfiguration("floor-time"));
         } catch(NumberFormatException nfe) {
             throw new ElevatorSystemException("Wrong configuration value for floor time.");
         }
@@ -150,8 +163,8 @@ class Elevator implements GenericElevator {
 
     void setLocation(int location) throws ElevatorSystemException {
         //NOTE: I used Building.getInstance().getNumberOfFloors() and got stuck for hours.
-        if(location < 1 || location > Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"))) {
-            throw new ElevatorSystemException("Floors can only be 1 to " + Integer.parseInt(SystemConfiguration.getConfig("number-of-floors")));
+        if(location < 1 || location > Integer.parseInt(SystemConfiguration.getConfiguration("number-of-floors"))) {
+            throw new ElevatorSystemException("Floors can only be 1 to " + Integer.parseInt(SystemConfiguration.getConfiguration("number-of-floors")));
         }
         this.location = location;
     }
@@ -161,7 +174,7 @@ class Elevator implements GenericElevator {
         Building.print("Idling at floor " + getLocation());
 
         try {
-            Thread.sleep(Long.parseLong(SystemConfiguration.getConfig("time-out")) * 1000L);
+            Thread.sleep(Long.parseLong(SystemConfiguration.getConfiguration("time-out")) * 1000L);
         } catch(InterruptedException ie) {
             throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
         }
@@ -182,7 +195,7 @@ class Elevator implements GenericElevator {
         }
         this.numberOfRiders = numberOfRiders;
     }
-    void addNextStop(int next) {
+    void addNextStop(int next) throws ElevatorSystemException {
 
         getNextFloorQueue().offer(next);
         Building.print("Next stops for Elevator[" + getElevatorId() + "] is: " + getNextFloorQueue().peek());

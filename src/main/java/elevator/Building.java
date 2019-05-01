@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class Building implements Observable {
 
-    private int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfig("number-of-floors"));
-    private int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfig("number-of-elevators"));
+    private int numberOfFloors;
+    private int numberOfElevators;
     private static long zeroTime;
 
     private List<Observer> observers = new ArrayList<>();
@@ -23,6 +23,9 @@ public class Building implements Observable {
     private static Building theBuilding = null;
 
     private Building() throws ElevatorSystemException {
+        SystemConfiguration.initializeSystemConfiguration();//TODO: ??Redundant?? since ElevatorController above initialized it already.
+        numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("number-of-floors"));
+        numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("number-of-elevators"));
         zeroTime = System.nanoTime();
     }
 
@@ -89,7 +92,7 @@ public class Building implements Observable {
     public void relayExitRiderFromElevatorMessage(int elevatorId) throws ElevatorSystemException {
         controlCenter.exitRider(elevatorId);
     }
-    public void relayDeleteFloorRequestMessage(Message message) {
+    public void relayDeleteFloorRequestMessage(Message message) throws ElevatorSystemException {
         FloorRequest floorRequest = (FloorRequest) message;
         controlCenter.removeFloorRequest(floorRequest.getFromFloorNumber(), floorRequest.getDesiredDirection());
     }
@@ -128,8 +131,18 @@ public class Building implements Observable {
         return String.format("%02d:%02d:%02d", h, m, s);
     }
 
-    public static void print(String msg) {
-        System.out.println(formatElapsedTime(System.nanoTime()) + " " + msg);
+    public void dumpRiders() throws ElevatorSystemException {
+        String str = "";
+        getObservers().forEach(o -> {
+            Person p = (Person) o;
+            //str = str.concat(p.getId() + ", " + p.getCreatedTime() + ", " + p.getStatus());
+        });
+    }
+
+    public static void print(String msg) throws ElevatorSystemException {
+        String eventString = formatElapsedTime(System.nanoTime()) + " " + msg;
+        System.out.println(eventString);
+        EventLogger.getInstance().logEvent(eventString);
     }
 
 }

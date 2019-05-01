@@ -1,5 +1,7 @@
 package elevator;
 
+import java.util.Objects;
+
 enum RiderStatus {WAITING, RIDING, DONE};
 
 class Person implements Rider, Observer {
@@ -21,6 +23,21 @@ class Person implements Rider, Observer {
         setDestinationFloor(destination);
         setCreatedTime(System.nanoTime());
         setStatus(RiderStatus.WAITING);
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if(object instanceof Person) {
+            if(getId() == ((Person) object).getId()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId());
     }
 
     @Override

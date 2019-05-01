@@ -6,7 +6,7 @@ class LoggerFactory {
     }
 
     public static Logger createLogger() throws ElevatorSystemException {
-        switch(SystemConfiguration.getConfig("logger")) {
+        switch(SystemConfiguration.getConfiguration("logger")) {
             case "stdout":
                 return new StandardOutputLogger();
             case "file":
