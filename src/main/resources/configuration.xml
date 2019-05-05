@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<configuration>
+    <property name="numberOfFloors" value="20" />
+    <property name="numberOfElevators" value="4" />
+    <property name="floorTime" value="1" />
+    <property name="doorTime" value="1" />
+    <property name="timeout" value="10" />
+    <property name="defaultFloor" value="1" />
+    <property name="logger" value="file" />
+    <property name="logFile" value="logs/events-log.txt" />
+    <property name="controller" value="alpha" />
+</configuration>

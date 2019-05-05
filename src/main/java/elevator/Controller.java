@@ -4,9 +4,7 @@ import java.util.Hashtable;
 import java.util.PriorityQueue;
 
 /**
- *
- * @author ntessema
- *
+ * Strategy
  */
 public interface Controller {
     void selectElevatorAndSendToFloor(int toFloorNumber, Direction desiredDirection) throws ElevatorSystemException;

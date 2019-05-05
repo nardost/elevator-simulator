@@ -1,5 +1,7 @@
 package elevator;
 
+import java.util.concurrent.TimeUnit;
+
 class EventLogger {
 
     private Logger logger; //For Strategy pattern
@@ -28,11 +30,23 @@ class EventLogger {
 
     /**
      * Strategy pattern. Delegates to a specific logging object.
-     *
-     * @param logMessage
-     * @throws ElevatorSystemException
      */
     public void logEvent(String logMessage) throws ElevatorSystemException {
         getLogger().log(logMessage);
+    }
+
+    public static String formatElapsedTime(long nanoTime) throws ElevatorSystemException  {
+        long elapsedTime = nanoTime - Building.getInstance().getZeroTime();
+        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
+        long s = elapsedSeconds % 60;
+        long m = ((elapsedSeconds - s) % 3600) / 60;
+        long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
+        return String.format("%02d:%02d:%02d", h, m, s);
+    }
+
+    public static void print(String msg) throws ElevatorSystemException {
+        String eventString = formatElapsedTime(System.nanoTime()) + " " + msg;
+        System.out.println(eventString);
+        EventLogger.getInstance().logEvent(eventString);//TODO: change to logEvent()...
     }
 }

@@ -23,9 +23,9 @@ public class Building implements Observable {
     private static Building theBuilding = null;
 
     private Building() throws ElevatorSystemException {
-        SystemConfiguration.initializeSystemConfiguration();//TODO: ??Redundant?? since ElevatorController above initialized it already.
-        numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("number-of-floors"));
-        numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("number-of-elevators"));
+        SystemConfiguration.initializeSystemConfiguration();
+        numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
+        numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
         zeroTime = System.nanoTime();
     }
 
@@ -122,27 +122,12 @@ public class Building implements Observable {
         return zeroTime;
     }
 
-    public static String formatElapsedTime(long nanoTime) {
-        long elapsedTime = nanoTime - getZeroTime();
-        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
-        long s = elapsedSeconds % 60;
-        long m = ((elapsedSeconds - s) % 3600) / 60;
-        long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
-        return String.format("%02d:%02d:%02d", h, m, s);
-    }
-
     public void dumpRiders() throws ElevatorSystemException {
         String str = "";
         getObservers().forEach(o -> {
             Person p = (Person) o;
             //str = str.concat(p.getId() + ", " + p.getCreatedTime() + ", " + p.getStatus());
         });
-    }
-
-    public static void print(String msg) throws ElevatorSystemException {
-        String eventString = formatElapsedTime(System.nanoTime()) + " " + msg;
-        System.out.println(eventString);
-        EventLogger.getInstance().logEvent(eventString);
     }
 
 }

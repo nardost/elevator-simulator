@@ -33,7 +33,7 @@ class ControllerAlpha implements Controller {
         Iterator<Integer> iterator = table.keySet().iterator();
         int i = 0;
         while(iterator.hasNext()) {
-            Building.print("Floor Request " + (++i));
+            EventLogger.print("Floor Request " + (++i));
             int floor = iterator.next();
             Direction direction = table.get(floor);
             selectElevatorAndSendToFloor(floor, direction);
@@ -49,7 +49,7 @@ class ControllerAlpha implements Controller {
         int elevatorLocation = message.getElevatorLocation();
         Direction elevatorServingDirection = message.getServingDirection();
 
-        Building.print("E" + elevatorId + " is at F" + elevatorLocation);
+        EventLogger.print("E" + elevatorId + " is at F" + elevatorLocation);
         announceLocationOfElevator(new LocationUpdateMessage(elevatorId, elevatorLocation, elevatorServingDirection));
 
     }

@@ -8,17 +8,18 @@ import java.util.List;
 /**
  * @author ntessema
  *
- * Using the Strategy Pattern
+ * Context. The Strategy is Controller
  *
  */
 
 class ElevatorController {
 
     private Controller controller;
+
     private List<Elevator> elevators = new ArrayList<>();
     private Hashtable<Integer, Direction> floorRequests = new Hashtable<>();
 
-    private static ElevatorController controlCenter;
+    private static ElevatorController controlCenter = null;
 
     private ElevatorController() throws ElevatorSystemException {
         SystemConfiguration.initializeSystemConfiguration();//TODO: Important!!!
@@ -40,7 +41,7 @@ class ElevatorController {
     void commandElevator(int elevatorId, int floorNumber, Direction direction) throws ElevatorSystemException {
         Elevator e = getElevatorById(elevatorId);
         e.addNextStop(floorNumber);
-        Building.print("Next Stop added to queue " + floorNumber);
+        EventLogger.print("Next Stop added to queue " + floorNumber);
         e.move(direction);
     }
 
@@ -56,7 +57,7 @@ class ElevatorController {
         Elevator e = getElevatorById(elevatorId);
         //e.closeDoors();
         e.setIdle();
-        e.addNextStop(Integer.parseInt(SystemConfiguration.getConfiguration("default-floor")));
+        e.addNextStop(Integer.parseInt(SystemConfiguration.getConfiguration("defaultFloor")));
         e.move(Direction.IDLE);
     }
 
@@ -64,14 +65,14 @@ class ElevatorController {
         Hashtable<Integer, Direction> table = getFloorRequests();
         if(table.get(fromFloorNumber) != direction) {
             table.put(fromFloorNumber, direction);
-            Building.print("Floor Request (" + fromFloorNumber + ", " + direction + ") saved.");
+            EventLogger.print("Floor Request (" + fromFloorNumber + ", " + direction + ") saved.");
         }
     }
     void removeFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
         Hashtable<Integer, Direction> table = getFloorRequests();
         if(table.containsKey(fromFloorNumber)) {
             table.remove(fromFloorNumber, direction);
-            Building.print("Floor Request (" + fromFloorNumber + ", " + direction + ") removed.");
+            EventLogger.print("Floor Request (" + fromFloorNumber + ", " + direction + ") removed.");
         }
     }
 
@@ -116,7 +117,7 @@ class ElevatorController {
     private void setElevators() throws ElevatorSystemException {
         try {
             this.elevators = new ArrayList<>();
-            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("number-of-elevators"));
+            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
             for (int i = 1; i <= numberOfElevators; i++) {
                 Elevator e = new Elevator();
                 addElevator(e);
