@@ -36,31 +36,27 @@ class ElevatorController {
         return controlCenter;
     }
 
-    void removeFloorRequest(Message message, int elevatorBoardedOn) throws ElevatorSystemException {
-        FloorRequest floorRequest = (FloorRequest) message;
-        int originFloor = floorRequest.getFromFloorNumber();
-        Direction directionRequested = floorRequest.getDesiredDirection();
-        controller.removeFloorRequest(originFloor, directionRequested, elevatorBoardedOn);
+    void receiveFloorRequest(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
+        controller.executeFloorRequest(fromFloorNumber, desiredDirection);
     }
 
-    void receiveFloorRequest(Message message) throws ElevatorSystemException {
-        FloorRequest floorRequest = (FloorRequest) message;
-        int fromFloorNumber = floorRequest.getFromFloorNumber();
-        Direction desiredDirection = floorRequest.getDesiredDirection();
-        controller.saveFloorRequest(fromFloorNumber, desiredDirection);
-    }
-
-    void receiveElevatorRequest(Message message) throws ElevatorSystemException {
-        ElevatorRequest elevatorRequest = (ElevatorRequest) message;
-        int elevatorId = elevatorRequest.getRequestedFromElevator();
-        int floorNumber = elevatorRequest.getRequestedDestinationFloor();
-        controller.executeElevatorRequest(elevatorId, floorNumber);
+    void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor) throws ElevatorSystemException {
+        Elevator e = getElevatorById(elevatorId);
+        e.enterRider();
+        controller.executeElevatorRequest(elevatorId, destinationFloor, originFloor);
 
     }
 
-    void receiveLocationUpdateMessage(Message message) throws ElevatorSystemException {
-        LocationUpdateMessage lum = (LocationUpdateMessage) message;
-        controller.executeLocationUpdate(lum.getElevatorId(), lum.getElevatorLocation(), lum.getServingDirection());
+    void receiveLocationUpdateMessage(int elevatorId, int location, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
+        controller.executeLocationUpdate(elevatorId, location, direction, directionDispatchedFor);
+    }
+
+    void exitRider(int elevatorId, int floorNumber) throws ElevatorSystemException {
+        Elevator e = getElevatorById(elevatorId);
+        if(e.peekNextStop() != null && floorNumber != e.peekNextStop()){
+            //throw new ElevatorSystemException("floor number (" + floorNumber + ") should have been the same as next stop of elevator ( " + e.peekNextStop() + ").");
+        }
+        e.exitRider();
     }
 
     Elevator getElevatorById(int id) {
@@ -70,25 +66,6 @@ class ElevatorController {
             }
         }
         return null;
-    }
-
-    //void enterRider(Message message) throws ElevatorSystemException {
-    void enterRider(int origin, int destination, int elevatorBoardedOn) throws ElevatorSystemException {
-        Direction direction = (origin < destination) ? Direction.UP : Direction.DOWN;
-        //ElevatorRequest elevatorRequest = (ElevatorRequest) message;
-        Elevator e = getElevatorById(elevatorBoardedOn);
-        e.enterRider();
-        controller.removeFloorRequest(origin, direction, elevatorBoardedOn);
-
-    }
-
-    void exitRider(int elevatorId, int floorNumber) throws ElevatorSystemException {
-        Elevator e = getElevatorById(elevatorId);
-        if(e.peekNextStop() != null && floorNumber != e.peekNextStop()){
-            throw new ElevatorSystemException("floor number (" + floorNumber + ") should have been the same as next stop of elevator ( " + e.peekNextStop() + ").");
-        }
-        e.pollNextStop();
-        e.exitRider(floorNumber);
     }
 
     private void setController(Controller controller) {

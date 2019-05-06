@@ -12,6 +12,8 @@ import java.util.List;
  */
 public class Building implements Observable {
 
+    public static int TEST;//absolutely for the tests only!!!
+
     private int numberOfFloors;
     private int numberOfElevators;
     private static long zeroTime;
@@ -53,50 +55,35 @@ public class Building implements Observable {
     }
 
     @Override
-    public void deleteObserver(Observer o) {
-
-    }
-
-    @Override
-    public void notifyObservers(Message message) throws ElevatorSystemException {
-        for(Observer observer : getObservers()) {
-            observer.update(message);
+    public void notifyObservers(int elevatorId, int elevatorLocation, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
+        for(Observer rider : getObservers()) {
+            rider.update(elevatorId, elevatorLocation, direction, directionDispatchedFor);
         }
     }
 
     @Override
     public int countObservers() throws ElevatorSystemException {
-
         if(getObservers() == null) {
             throw new ElevatorSystemException("ERROR: observers list is null.");
         }
         return getObservers().size();
     }
 
-    public void relayFloorRequestToControlCenter(Message message) throws ElevatorSystemException {
-        controlCenter.receiveFloorRequest(message);
+    public void relayFloorRequestToControlCenter(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
+        controlCenter.receiveFloorRequest(fromFloorNumber, desiredDirection);
     }
 
-    public void relayElevatorRequestToControlCenter(Message message) throws ElevatorSystemException {
-        controlCenter.receiveElevatorRequest(message);
+    public void relayElevatorRequestToControlCenter(int elevatorId, int destinationFloor, int originFloor) throws ElevatorSystemException {
+        controlCenter.receiveElevatorRequest(elevatorId, destinationFloor, originFloor);
     }
 
-    public void relayLocationUpdateMessageToControlCenter(Message locationUpdateMessage) throws ElevatorSystemException {
-        controlCenter.receiveLocationUpdateMessage(locationUpdateMessage);
+    public void relayLocationUpdateMessageToControlCenter(int elevatorId, int location, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
+        controlCenter.receiveLocationUpdateMessage(elevatorId, location, direction, directionDispatchedFor);
     }
 
-    //public void relayEnterRiderIntoElevatorMessage(Message message) throws ElevatorSystemException {
-    public void relayEnterRiderIntoElevatorMessage(int origin, int destination, int elevatorId) throws ElevatorSystemException {
-        //controlCenter.enterRider(message);
-        controlCenter.enterRider(origin, destination, elevatorId);
-    }
     public void relayExitRiderFromElevatorMessage(int elevatorId, int floorNumber) throws ElevatorSystemException {
         controlCenter.exitRider(elevatorId, floorNumber);
     }
-    public void relayDeleteFloorRequestMessage(Message message, int elevatorBoardedOn) throws ElevatorSystemException {
-        controlCenter.removeFloorRequest(message, elevatorBoardedOn);
-    }
-
 
     private List<Observer> getObservers() {
 
@@ -114,7 +101,7 @@ public class Building implements Observable {
 
     public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
         Person person = new Person(originFloorNumber, destinationFloorNumber);
-        getObservers().add(person);
+        addObserver(person);
         person.sendMeAnElevator();
     }
 

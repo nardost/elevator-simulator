@@ -1,5 +1,5 @@
 package elevator;
 
 interface Observer {
-    void update(Message message) throws ElevatorSystemException;
+    void update(int elevatorId, int floorNumber, Direction directionOfElevator, Direction directionDispatchedFor) throws ElevatorSystemException;
 }

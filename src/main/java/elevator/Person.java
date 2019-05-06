@@ -38,7 +38,6 @@ class Person implements Rider, Observer {
         return Objects.hash(getId());
     }
 
-    @Override
     public void sendMeAnElevator() throws ElevatorSystemException {
         int destination = getDestinationFloor();
         int origin = getOriginFloor();
@@ -48,17 +47,8 @@ class Person implements Rider, Observer {
             return;
         }
 
-        EventLogger.print("P" + getId() +  " pressed " + direction.toString() + " on F" + getOriginFloor() + ". Going " + direction.toString() + " to F" + getDestinationFloor() + ".");
-        Message floorRequest = new FloorRequest(getOriginFloor(), direction);
-        Building.getInstance().relayFloorRequestToControlCenter(floorRequest);
-    }
-
-    @Override
-    public void takeMeToMyDestination(int elevatorId) throws  ElevatorSystemException {
-        Direction direction = (getOriginFloor() < getDestinationFloor()) ? Direction.UP : Direction.DOWN;
-        EventLogger.print("P" + getId() + " pressed " + getDestinationFloor() + " in E" + elevatorId);
-        Message elevatorRequest = new ElevatorRequest(elevatorId, getDestinationFloor());
-        Building.getInstance().relayElevatorRequestToControlCenter(elevatorRequest);
+        EventLogger.print("P-" + getId() +  " pressed " + direction.toString() + " on F-" + getOriginFloor() + ". Going " + direction.toString() + " to F-" + getDestinationFloor() + ".");
+        Building.getInstance().relayFloorRequestToControlCenter(origin, direction);
     }
 
     @Override
@@ -70,34 +60,25 @@ class Person implements Rider, Observer {
         setStatus(RiderStatus.RIDING);
         setElevatorBoardedOn(elevatorId);
         setBoardingTime(System.nanoTime());
-        EventLogger.print("P" + getId() + " on F" + origin + " boarded E" + getElevatorBoardedOn() + " and is going " + direction.toString() + " to F" + destination);
-        Message elevatorRequest = new ElevatorRequest(elevatorId, getDestinationFloor());
-        Message floorRequest = new FloorRequest(getOriginFloor(), direction);
-        //Building.getInstance().relayDeleteFloorRequestMessage(floorRequest, elevatorId);
-        //Building.getInstance().relayEnterRiderIntoElevatorMessage(elevatorRequest);
-        Building.getInstance().relayEnterRiderIntoElevatorMessage(origin, destination, elevatorId);
-        takeMeToMyDestination(elevatorId);
+        EventLogger.print("P-" + getId() + " on F-" + origin + " boarded E-" + getElevatorBoardedOn() + " and is going " + direction.toString() + " to F-" + destination);
+        EventLogger.print("P-" + getId() + " pressed " + getDestinationFloor() + " in E-" + elevatorId);
+        Building.getInstance().relayElevatorRequestToControlCenter(elevatorId, destination, origin);
     }
 
     @Override
     public void exitElevator(int elevatorId) throws ElevatorSystemException {
         setStatus(RiderStatus.DONE);
         setExitTime(System.nanoTime());
-        EventLogger.print("P" + getId() + " exits E" + elevatorId + " on F" + getDestinationFloor());
+        EventLogger.print("P-" + getId() + " exits E-" + elevatorId + " on F-" + getDestinationFloor());
         Building.getInstance().relayExitRiderFromElevatorMessage(elevatorId, getDestinationFloor());
     }
 
     @Override
-    public void update(Message message) throws ElevatorSystemException  {
-        LocationUpdateMessage locationMessage = (LocationUpdateMessage) message;
-        decideToBoardOrIgnoreOrExitElevator(locationMessage);
+    public void update(int elevatorId, int floorNumber, Direction directionOfElevator, Direction directionDispatchedFor) throws ElevatorSystemException  {
+        decideToBoardOrIgnoreOrExitElevator(elevatorId, floorNumber, directionOfElevator, directionDispatchedFor);
     }
 
-    public void decideToBoardOrIgnoreOrExitElevator(LocationUpdateMessage message) throws ElevatorSystemException {
-
-        int elevatorId = message.getElevatorId();
-        int floorNumber = message.getElevatorLocation();
-        Direction directionOfElevator = message.getServingDirection();
+    public void decideToBoardOrIgnoreOrExitElevator(int elevatorId, int floorNumber, Direction directionOfElevator, Direction directionDispatchedFor) throws ElevatorSystemException {
 
         int originFloor = getOriginFloor();
         int destinationFloor = getDestinationFloor();
@@ -109,12 +90,14 @@ class Person implements Rider, Observer {
         }
 
         if(getStatus() == RiderStatus.WAITING) {
-            if(floorNumber == originFloor /*&& intendedDirection == directionOfElevator*/ ) {
-                //board elevator and request floor immediately.
-                boardElevator(elevatorId);
-                return;
-            } else {
-                EventLogger.print("Elevator is here but chose to ignore it...");
+            if(floorNumber == originFloor) {
+                if(intendedDirection == directionOfElevator || intendedDirection == directionDispatchedFor) {
+                    //board elevator and request floor immediately.
+                    boardElevator(elevatorId);
+                    return;
+                } else {
+                    EventLogger.print("E" + elevatorId + " serving " + directionOfElevator.toString() + ". P" + getId() + " going " + intendedDirection.toString() + " ...ignore...");
+                }
             }
         }
     }
