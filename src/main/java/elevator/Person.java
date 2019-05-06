@@ -2,8 +2,6 @@ package elevator;
 
 import java.util.Objects;
 
-enum RiderStatus {WAITING, RIDING, DONE};
-
 class Person implements Rider, Observer {
 
     private int id;
@@ -72,12 +70,12 @@ class Person implements Rider, Observer {
         setStatus(RiderStatus.RIDING);
         setElevatorBoardedOn(elevatorId);
         setBoardingTime(System.nanoTime());
-        EventLogger.print("P" + getId() + " is now " + getStatus().toString() + " E" + getElevatorBoardedOn());
-
+        EventLogger.print("P" + getId() + " on F" + origin + " boarded E" + getElevatorBoardedOn() + " and is going " + direction.toString() + " to F" + destination);
         Message elevatorRequest = new ElevatorRequest(elevatorId, getDestinationFloor());
         Message floorRequest = new FloorRequest(getOriginFloor(), direction);
-        Building.getInstance().relayDeleteFloorRequestMessage(floorRequest);
-        Building.getInstance().relayEnterRiderIntoElevatorMessage(elevatorRequest);
+        //Building.getInstance().relayDeleteFloorRequestMessage(floorRequest, elevatorId);
+        //Building.getInstance().relayEnterRiderIntoElevatorMessage(elevatorRequest);
+        Building.getInstance().relayEnterRiderIntoElevatorMessage(origin, destination, elevatorId);
         takeMeToMyDestination(elevatorId);
     }
 
@@ -85,7 +83,8 @@ class Person implements Rider, Observer {
     public void exitElevator(int elevatorId) throws ElevatorSystemException {
         setStatus(RiderStatus.DONE);
         setExitTime(System.nanoTime());
-        Building.getInstance().relayExitRiderFromElevatorMessage(elevatorId);
+        EventLogger.print("P" + getId() + " exits E" + elevatorId + " on F" + getDestinationFloor());
+        Building.getInstance().relayExitRiderFromElevatorMessage(elevatorId, getDestinationFloor());
     }
 
     @Override
@@ -104,17 +103,19 @@ class Person implements Rider, Observer {
         int destinationFloor = getDestinationFloor();
         Direction intendedDirection = (originFloor < destinationFloor) ? Direction.UP : Direction.DOWN;
 
-        if(getStatus() == RiderStatus.RIDING && elevatorId == getElevatorBoardedOn() && floorNumber == getDestinationFloor()) {
-            EventLogger.print("P" + getId() + " exits E" + elevatorId + " on F" + floorNumber);
+        if(getStatus() == RiderStatus.RIDING && elevatorId == getElevatorBoardedOn() && floorNumber == destinationFloor) {
             exitElevator(elevatorId);
             return;
         }
 
-        if(getStatus() == RiderStatus.WAITING && floorNumber == originFloor && intendedDirection == directionOfElevator) {
-            //board elevator and request floor immediately.
-            EventLogger.print("P" + getId() + " boarded E" + elevatorId);
-            boardElevator(elevatorId);
-            return;
+        if(getStatus() == RiderStatus.WAITING) {
+            if(floorNumber == originFloor /*&& intendedDirection == directionOfElevator*/ ) {
+                //board elevator and request floor immediately.
+                boardElevator(elevatorId);
+                return;
+            } else {
+                EventLogger.print("Elevator is here but chose to ignore it...");
+            }
         }
     }
 

@@ -7,8 +7,6 @@ import java.util.*;
 import static gui.ElevatorDisplay.Direction.DOWN;
 import static gui.ElevatorDisplay.Direction.UP;
 
-enum Direction {IDLE, UP, DOWN};
-
 class Elevator implements GenericElevator {
 
     private int elevatorId;
@@ -71,17 +69,36 @@ class Elevator implements GenericElevator {
         return this.location;
     }
 
-    public void move(Direction direction) throws ElevatorSystemException {
+    public void move() throws ElevatorSystemException {
 
-        int floor = getNextStop();
         long floorTime = 1000L * (long) getSpeed();
 
-        openDoors();
-        closeDoors();
+        if(iHaveNoMoreStops()) {
+            closeDoors();
+            if(getLocation() != Integer.parseInt(SystemConfiguration.getConfiguration("defaultFloor"))) {
+                setIdle();
+            }
+            EventLogger.print("Mission Accomplished.");
+            return;
+        }
+
+        int floor = peekNextStop();
+
+        //if(floor == getLocation()) {
+            //getNextFloorQueue().poll();
+        //}
+
+        direction = (floor >= getLocation()) ? Direction.UP : Direction.DOWN;
+
         setDirection(direction);
+        if(!areDoorsClosed()) {
+            closeDoors();
+        }
+
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
                 //TODO: Before moving to the next floor, check if there is a new stop by...
+
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), UP);
                 try {
                     Thread.sleep(floorTime);
@@ -91,6 +108,11 @@ class Elevator implements GenericElevator {
                 setLocation(i);
                 Message locationUpdateMessage = new LocationUpdateMessage(getElevatorId(), getLocation(), getDirection());
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(locationUpdateMessage);
+                if(i == 3 && Building.getInstance().getNumberOfPeopleGenerated() == 1) {
+                    //Building.getInstance().generatePerson(8, 15);
+                    //i = getLocation();
+                }
+                EventLogger.print("...now on " + getLocation());
             }
         } else {
             for (int i = getLocation(); i >= floor; i--) {
@@ -107,6 +129,7 @@ class Elevator implements GenericElevator {
             }
         }
         openDoors();
+        closeDoors();
     }
 
     @Override
@@ -133,7 +156,7 @@ class Elevator implements GenericElevator {
         setNumberOfRiders(1 + getNumberOfRiders());
         EventLogger.print(getNumberOfRiders() + " riders in elevator " + getElevatorId());
     }
-    void exitRider() throws ElevatorSystemException {
+    void exitRider(int floorNumber) throws ElevatorSystemException {
         setNumberOfRiders(getNumberOfRiders() - 1);
     }
 
@@ -189,19 +212,46 @@ class Elevator implements GenericElevator {
     }
 
     private void setNumberOfRiders(int numberOfRiders) throws ElevatorSystemException {
-        int maxCapacity = 50;
+        int maxCapacity = Integer.parseInt(SystemConfiguration.getConfiguration("elevatorCapacity"));
         if(numberOfRiders < 0 || numberOfRiders > maxCapacity) {
             throw new ElevatorSystemException("Elevator capacity is between 0 and " + maxCapacity);
         }
         this.numberOfRiders = numberOfRiders;
     }
+
     void addNextStop(int next) throws ElevatorSystemException {
-
         getNextFloorQueue().offer(next);
-        EventLogger.print("Next stops for Elevator[" + getElevatorId() + "] is: " + getNextFloorQueue().peek());
+        EventLogger.print("Next stops for Elevator[" + getElevatorId() + "]: " + listNextStops());
     }
 
-    int getNextStop() {
-        return getNextFloorQueue().poll();
+    Integer peekNextStop() {
+        if(getNextFloorQueue().peek() != null) {
+            return getNextFloorQueue().peek();
+        }
+        return null;
     }
+    Integer pollNextStop() throws ElevatorSystemException {
+        if(peekNextStop() != null) {
+            int next = getNextFloorQueue().poll();
+            EventLogger.print("Next stops for Elevator[" + getElevatorId() + "]: " + listNextStops());
+            return next;
+        }
+        return null;
+    }
+    boolean iHaveNoMoreStops() {
+        if(peekNextStop() == null) {
+            return true;
+        }
+        return false;
+    }
+    String listNextStops() {
+        Iterator iterator = getNextFloorQueue().iterator();
+        StringBuilder sb = new StringBuilder();
+        while(iterator.hasNext()) {
+            sb.append(iterator.next());
+            sb.append(" -> ");
+        }
+        return sb.toString();
+    }
+
 }

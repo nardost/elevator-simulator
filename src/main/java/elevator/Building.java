@@ -2,7 +2,6 @@ package elevator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author ntessema
@@ -49,7 +48,7 @@ public class Building implements Observable {
         try {
             getObservers().add(o);
         } catch(NullPointerException npe) {
-            throw new ElevatorSystemException("INTERNAL ERROR: Observers list is null.");
+            throw new ElevatorSystemException("ERROR: The observers list is null.");
         }
     }
 
@@ -69,7 +68,7 @@ public class Building implements Observable {
     public int countObservers() throws ElevatorSystemException {
 
         if(getObservers() == null) {
-            throw new ElevatorSystemException("INTERNAL ERROR: observers list of Building is null.");
+            throw new ElevatorSystemException("ERROR: observers list is null.");
         }
         return getObservers().size();
     }
@@ -86,15 +85,16 @@ public class Building implements Observable {
         controlCenter.receiveLocationUpdateMessage(locationUpdateMessage);
     }
 
-    public void relayEnterRiderIntoElevatorMessage(Message message) throws ElevatorSystemException {
-        controlCenter.enterRider(message);
+    //public void relayEnterRiderIntoElevatorMessage(Message message) throws ElevatorSystemException {
+    public void relayEnterRiderIntoElevatorMessage(int origin, int destination, int elevatorId) throws ElevatorSystemException {
+        //controlCenter.enterRider(message);
+        controlCenter.enterRider(origin, destination, elevatorId);
     }
-    public void relayExitRiderFromElevatorMessage(int elevatorId) throws ElevatorSystemException {
-        controlCenter.exitRider(elevatorId);
+    public void relayExitRiderFromElevatorMessage(int elevatorId, int floorNumber) throws ElevatorSystemException {
+        controlCenter.exitRider(elevatorId, floorNumber);
     }
-    public void relayDeleteFloorRequestMessage(Message message) throws ElevatorSystemException {
-        FloorRequest floorRequest = (FloorRequest) message;
-        controlCenter.removeFloorRequest(floorRequest.getFromFloorNumber(), floorRequest.getDesiredDirection());
+    public void relayDeleteFloorRequestMessage(Message message, int elevatorBoardedOn) throws ElevatorSystemException {
+        controlCenter.removeFloorRequest(message, elevatorBoardedOn);
     }
 
 
@@ -116,6 +116,10 @@ public class Building implements Observable {
         Person person = new Person(originFloorNumber, destinationFloorNumber);
         getObservers().add(person);
         person.sendMeAnElevator();
+    }
+
+    public int getNumberOfPeopleGenerated() {
+        return getObservers().size();
     }
 
     public static long getZeroTime() {

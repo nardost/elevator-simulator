@@ -17,7 +17,9 @@ public class SystemConfiguration {
 
     private SystemConfiguration() throws ElevatorSystemException {
         configurationTable = new Hashtable<>();
-        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("configuration.xml")) {
+        String configurationFile = "configuration.xml";
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(configurationFile);
+        try {
             Document configuration = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
             NodeList properties = configuration.getElementsByTagName("property");
             for(int i = 0; i < properties.getLength(); i++) {
@@ -29,9 +31,11 @@ public class SystemConfiguration {
         } catch(IOException ioe) {
             throw new ElevatorSystemException("Cannot read configuration file.");
         } catch(ParserConfigurationException pe) {
-            throw new ElevatorSystemException("Malformed configuration file.");
+            throw new ElevatorSystemException("ERROR: DocumentBuilder cannot be created.");
         } catch(SAXException se) {
-            throw new ElevatorSystemException("Malformed configuration file.");
+            throw new ElevatorSystemException("Parse error in configuration file.");
+        } catch (IllegalArgumentException iae) {
+            throw new ElevatorSystemException("ERROR: Check if the system configuration file " + configurationFile + " exists.");
         }
     }
 

@@ -2,7 +2,6 @@ package elevator;
 
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 
 /**
@@ -17,7 +16,6 @@ class ElevatorController {
     private Controller controller;
 
     private List<Elevator> elevators = new ArrayList<>();
-    private Hashtable<Integer, Direction> floorRequests = new Hashtable<>();
 
     private static ElevatorController controlCenter = null;
 
@@ -38,76 +36,59 @@ class ElevatorController {
         return controlCenter;
     }
 
-    void commandElevator(int elevatorId, int floorNumber, Direction direction) throws ElevatorSystemException {
-        Elevator e = getElevatorById(elevatorId);
-        e.addNextStop(floorNumber);
-        EventLogger.print("Next Stop added to queue " + floorNumber);
-        e.move(direction);
-    }
-
-    void stopElevatorAndLetRiderIn(int elevatorId, int floorNumber) throws ElevatorSystemException {
-        Elevator e = getElevatorById(elevatorId);
-        //TODO: poll() queue -> oldDestination, moveTo(floorNumber)
-        e.openDoors();
-        e.setLocation(floorNumber);
-        //e.move(e.getDirection());
-    }
-
-    void setIdleAndReturnToDefaultFloor(int elevatorId) throws ElevatorSystemException {
-        Elevator e = getElevatorById(elevatorId);
-        //e.closeDoors();
-        e.setIdle();
-        e.addNextStop(Integer.parseInt(SystemConfiguration.getConfiguration("defaultFloor")));
-        e.move(Direction.IDLE);
-    }
-
-    void saveFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
-        Hashtable<Integer, Direction> table = getFloorRequests();
-        if(table.get(fromFloorNumber) != direction) {
-            table.put(fromFloorNumber, direction);
-            EventLogger.print("Floor Request (" + fromFloorNumber + ", " + direction + ") saved.");
-        }
-    }
-    void removeFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
-        Hashtable<Integer, Direction> table = getFloorRequests();
-        if(table.containsKey(fromFloorNumber)) {
-            table.remove(fromFloorNumber, direction);
-            EventLogger.print("Floor Request (" + fromFloorNumber + ", " + direction + ") removed.");
-        }
+    void removeFloorRequest(Message message, int elevatorBoardedOn) throws ElevatorSystemException {
+        FloorRequest floorRequest = (FloorRequest) message;
+        int originFloor = floorRequest.getFromFloorNumber();
+        Direction directionRequested = floorRequest.getDesiredDirection();
+        controller.removeFloorRequest(originFloor, directionRequested, elevatorBoardedOn);
     }
 
     void receiveFloorRequest(Message message) throws ElevatorSystemException {
         FloorRequest floorRequest = (FloorRequest) message;
-        saveFloorRequest(floorRequest.getFromFloorNumber(), floorRequest.getDesiredDirection());
-
-        controller.executeFloorRequest(getFloorRequests());
+        int fromFloorNumber = floorRequest.getFromFloorNumber();
+        Direction desiredDirection = floorRequest.getDesiredDirection();
+        controller.saveFloorRequest(fromFloorNumber, desiredDirection);
     }
 
     void receiveElevatorRequest(Message message) throws ElevatorSystemException {
         ElevatorRequest elevatorRequest = (ElevatorRequest) message;
-        Elevator e = getElevatorById(elevatorRequest.getRequestedFromElevator());
-        e.addNextStop(elevatorRequest.getRequestedDestinationFloor());
-        e.move(e.getDirection());
-        controller.executeElevatorRequest(e.getElevatorId(), e.getNextFloorQueue());
+        int elevatorId = elevatorRequest.getRequestedFromElevator();
+        int floorNumber = elevatorRequest.getRequestedDestinationFloor();
+        controller.executeElevatorRequest(elevatorId, floorNumber);
+
     }
 
     void receiveLocationUpdateMessage(Message message) throws ElevatorSystemException {
-        controller.receiveLocationUpdateMessage(message);
+        LocationUpdateMessage lum = (LocationUpdateMessage) message;
+        controller.executeLocationUpdate(lum.getElevatorId(), lum.getElevatorLocation(), lum.getServingDirection());
     }
 
-    public void enterRider(Message message) throws ElevatorSystemException {
-        ElevatorRequest elevatorRequest = (ElevatorRequest) message;
-        Elevator e = getElevatorById(elevatorRequest.getRequestedFromElevator());
+    Elevator getElevatorById(int id) {
+        for(Elevator e : getElevators()) {
+            if(id == e.getElevatorId()) {
+                return e;
+            }
+        }
+        return null;
+    }
+
+    //void enterRider(Message message) throws ElevatorSystemException {
+    void enterRider(int origin, int destination, int elevatorBoardedOn) throws ElevatorSystemException {
+        Direction direction = (origin < destination) ? Direction.UP : Direction.DOWN;
+        //ElevatorRequest elevatorRequest = (ElevatorRequest) message;
+        Elevator e = getElevatorById(elevatorBoardedOn);
         e.enterRider();
+        controller.removeFloorRequest(origin, direction, elevatorBoardedOn);
+
     }
 
-    public void exitRider(int elevatorId) throws ElevatorSystemException {
+    void exitRider(int elevatorId, int floorNumber) throws ElevatorSystemException {
         Elevator e = getElevatorById(elevatorId);
-        e.exitRider();
-    }
-
-    private Hashtable<Integer, Direction> getFloorRequests() {
-        return floorRequests;
+        if(e.peekNextStop() != null && floorNumber != e.peekNextStop()){
+            throw new ElevatorSystemException("floor number (" + floorNumber + ") should have been the same as next stop of elevator ( " + e.peekNextStop() + ").");
+        }
+        e.pollNextStop();
+        e.exitRider(floorNumber);
     }
 
     private void setController(Controller controller) {
@@ -136,25 +117,5 @@ class ElevatorController {
 
     private List<Elevator> getElevators() {
         return elevators;
-    }
-    private Elevator getElevatorById(int id) {
-        for(Elevator e : getElevators()) {
-            if(id == e.getElevatorId()) {
-                return e;
-            }
-        }
-        return null;
-    }
-    boolean requestExists(int floorNumber, Direction desiredDirection) {
-        if(getFloorRequests().containsKey(floorNumber) && getFloorRequests().get(floorNumber) == desiredDirection) {
-            return true;
-        }
-        return false;
-    }
-    boolean atLeastOneRequeat() {
-        if(getFloorRequests().isEmpty()) {
-            return false;
-        }
-        return true;
     }
 }
