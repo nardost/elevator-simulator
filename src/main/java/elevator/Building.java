@@ -1,5 +1,6 @@
 package elevator;
 
+import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -18,6 +19,7 @@ public class Building implements Observable {
     private int numberOfFloors;
     private int numberOfElevators;
     private static long zeroTime;
+    private static Instant zeroInstant;
 
     private List<Observer> observers = new CopyOnWriteArrayList<>();
     /** Chosen over ArrayList to avoid a recurring ConcurrentModificationException while updating in iterator.*/
@@ -30,6 +32,7 @@ public class Building implements Observable {
         numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
         numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
         zeroTime = System.nanoTime();
+        zeroInstant = Instant.now();
     }
 
    public static Building getInstance() throws ElevatorSystemException {
@@ -125,6 +128,7 @@ public class Building implements Observable {
     public static long getZeroTime() {
         return zeroTime;
     }
+    public static Instant getZeroInstant() { return zeroInstant; }
 
     /**
      * All utility methods like litToString() will be refactored to a separate
@@ -134,7 +138,7 @@ public class Building implements Observable {
         StringBuilder sb = new StringBuilder();
         list.forEach(rider -> {
             sb.append(prefix);
-            sb.append(rider);
+            sb.append(rider.toString());
             sb.append(suffix);
             sb.append(separator);
         });

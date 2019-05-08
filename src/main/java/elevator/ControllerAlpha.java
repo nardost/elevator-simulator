@@ -106,9 +106,7 @@ class ControllerAlpha implements Controller {
             e.setDispatchedForFloor(toFloorNumber);
             e.setDispatchedToServeDirection(desiredDirection);
             e.setDirection(nowGoingInDirection);
-            if(!e.getNextFloorQueue().contains(toFloorNumber)) {
-                getFloorRequests().put(toFloorNumber, desiredDirection);
-            }
+            getFloorRequests().put(toFloorNumber, desiredDirection);
             if(e.getLocation() == toFloorNumber) {
                 announceLocationOfElevator(e.getElevatorId(), e.getLocation(), e.getDirection(), e.getDispatchedToServeDirection());
             } else {
