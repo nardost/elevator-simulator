@@ -1,7 +1,8 @@
 package elevator;
 
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author ntessema
@@ -18,7 +19,8 @@ public class Building implements Observable {
     private int numberOfElevators;
     private static long zeroTime;
 
-    private List<Observer> observers = new ArrayList<>();
+    private List<Observer> observers = new CopyOnWriteArrayList<>();
+    /** Chosen over ArrayList to avoid a recurring ConcurrentModificationException while updating in iterator.*/
 
     private ElevatorController controlCenter = ElevatorController.getInstance();
     private static Building theBuilding = null;
@@ -56,7 +58,16 @@ public class Building implements Observable {
 
     @Override
     public void notifyObservers(int elevatorId, int elevatorLocation, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
-        for(Observer rider : getObservers()) {
+        /**
+         * If ArrayList is used, the following lines will throw a ConcurrentModificationException (Test3).
+         * CopyOnWriteArrayList was used and the problem disappeared. The Javadoc says the following.
+         * This is ordinarily too costly, but may be more efficient than alternatives when traversal operations
+         * vastly outnumber mutations, and is useful when you cannot or don't want to synchronize traversals,
+         * yet need to preclude interference among concurrent threads.
+         * */
+        Iterator iterator = getObservers().iterator();
+        while (iterator.hasNext()) {
+            Observer rider = (Observer) iterator.next();
             rider.update(elevatorId, elevatorLocation, direction, directionDispatchedFor);
         }
     }
@@ -73,16 +84,16 @@ public class Building implements Observable {
         controlCenter.receiveFloorRequest(fromFloorNumber, desiredDirection);
     }
 
-    public void relayElevatorRequestToControlCenter(int elevatorId, int destinationFloor, int originFloor) throws ElevatorSystemException {
-        controlCenter.receiveElevatorRequest(elevatorId, destinationFloor, originFloor);
+    public void relayElevatorRequestToControlCenter(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
+        controlCenter.receiveElevatorRequest(elevatorId, destinationFloor, originFloor, personId);
     }
 
     public void relayLocationUpdateMessageToControlCenter(int elevatorId, int location, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
         controlCenter.receiveLocationUpdateMessage(elevatorId, location, direction, directionDispatchedFor);
     }
 
-    public void relayExitRiderFromElevatorMessage(int elevatorId, int floorNumber) throws ElevatorSystemException {
-        controlCenter.exitRider(elevatorId, floorNumber);
+    public void relayExitRiderFromElevatorMessage(int elevatorId, int floorNumber, int personId) throws ElevatorSystemException {
+        controlCenter.exitRider(elevatorId, floorNumber, personId);
     }
 
     private List<Observer> getObservers() {
@@ -101,7 +112,9 @@ public class Building implements Observable {
 
     public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
         Person person = new Person(originFloorNumber, destinationFloorNumber);
+        Direction desiredDirection = (originFloorNumber < destinationFloorNumber) ? Direction.UP : Direction.DOWN;
         addObserver(person);
+        EventLogger.print("Person P" + person.getId() + " created on Floor " + originFloorNumber + ", wants to go " + desiredDirection.toString() + " to Floor " + destinationFloorNumber);
         person.sendMeAnElevator();
     }
 
@@ -113,12 +126,26 @@ public class Building implements Observable {
         return zeroTime;
     }
 
-    public void dumpRiders() throws ElevatorSystemException {
-        String str = "";
-        getObservers().forEach(o -> {
-            Person p = (Person) o;
-            //str = str.concat(p.getId() + ", " + p.getCreatedTime() + ", " + p.getStatus());
+    /**
+     * All utility methods like litToString() will be refactored to a separate
+     * Utility class.
+     * */
+    public static String listToString(List list, String prefix, String separator, String suffix) {
+        StringBuilder sb = new StringBuilder();
+        list.forEach(rider -> {
+            sb.append(prefix);
+            sb.append(rider);
+            sb.append(suffix);
+            sb.append(separator);
         });
+        int l = sb.length();
+        int s = separator.length();
+        if(l > s) {
+            for(int i = 1; i <= s; i++) {
+                sb.deleteCharAt(l - i);
+            }
+        }
+        return sb.toString();
     }
 
 }

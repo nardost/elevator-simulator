@@ -40,9 +40,9 @@ class ElevatorController {
         controller.executeFloorRequest(fromFloorNumber, desiredDirection);
     }
 
-    void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor) throws ElevatorSystemException {
+    void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
         Elevator e = getElevatorById(elevatorId);
-        e.enterRider();
+        e.enterRider(personId, destinationFloor);
         controller.executeElevatorRequest(elevatorId, destinationFloor, originFloor);
 
     }
@@ -51,12 +51,9 @@ class ElevatorController {
         controller.executeLocationUpdate(elevatorId, location, direction, directionDispatchedFor);
     }
 
-    void exitRider(int elevatorId, int floorNumber) throws ElevatorSystemException {
+    void exitRider(int elevatorId, int floorNumber, int personId) throws ElevatorSystemException {
         Elevator e = getElevatorById(elevatorId);
-        if(e.peekNextStop() != null && floorNumber != e.peekNextStop()){
-            //throw new ElevatorSystemException("floor number (" + floorNumber + ") should have been the same as next stop of elevator ( " + e.peekNextStop() + ").");
-        }
-        e.exitRider();
+        e.exitRider(personId, floorNumber);
     }
 
     Elevator getElevatorById(int id) {

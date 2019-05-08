@@ -3,6 +3,7 @@ package elevator;
 import gui.ElevatorDisplay;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static gui.ElevatorDisplay.Direction.DOWN;
 import static gui.ElevatorDisplay.Direction.UP;
@@ -18,7 +19,8 @@ class Elevator implements GenericElevator {
     private Direction dispatchedToServeDirection;
     private boolean doorsClosed;
 
-    private int numberOfRiders;
+    private List<Integer> riderRequests = new ArrayList<>();
+    private List<Integer> riders = new ArrayList<>();
 
     private PriorityQueue<Integer> nextFloorQueueNatural = new PriorityQueue<>(Comparator.naturalOrder());
     private PriorityQueue<Integer> nextFloorQueueReversed = new PriorityQueue<>(Comparator.reverseOrder());
@@ -53,7 +55,6 @@ class Elevator implements GenericElevator {
         return Objects.hash(getElevatorId());
     }
 
-    @Override
     public int getSpeed() {
         return this.speed;
     }
@@ -64,37 +65,26 @@ class Elevator implements GenericElevator {
     }
 
     @Override
-    public boolean areDoorsClosed() {
-        return this.doorsClosed;
-    }
-
-    @Override
     public int getLocation() {
         return this.location;
     }
 
+    @Override
     public void move() throws ElevatorSystemException {
-
+        //closeDoors();
         long floorTime = 1000L * (long) getSpeed();
-
-        if(iHaveNoMoreStops()) {
-            closeDoors();
+        int floor = peekNextStop();
+        if(noMoreStops()) {
             if(getLocation() != Integer.parseInt(SystemConfiguration.getConfiguration("defaultFloor"))) {
                 setIdle();
             }
-            EventLogger.print("E-" + getElevatorId() + " has accomplished its mission.");
+            EventLogger.print("Elevator " + getElevatorId() + " has accomplished its mission.");
             return;
         }
 
-        int floor = peekNextStop();
-
-        if(!areDoorsClosed()) {
-            closeDoors();
-        }
 
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
-                //TODO: Before moving to the next floor, check if there is a new stop by...
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), UP);
                 try {
                     Thread.sleep(floorTime);
@@ -112,7 +102,9 @@ class Elevator implements GenericElevator {
                     if(i == 5 && Building.getInstance().getNumberOfPeopleGenerated() == 1) {
                         Building.getInstance().generatePerson(8, 17);
                         i = getLocation();
-                    } else if(i == 6 && Building.getInstance().getNumberOfPeopleGenerated() == 2) {
+                    }
+                    if(i == 7 && Building.getInstance().getNumberOfPeopleGenerated() == 2) {
+                        //Elevator 4 should respond to this.
                         Building.getInstance().generatePerson(1, 9);
                         i = getLocation();
                     }
@@ -120,7 +112,6 @@ class Elevator implements GenericElevator {
             }
         } else {
             for (int i = getLocation(); i >= floor; i--) {
-                //TODO: Before moving to the next floor, check if there is a new stop by...
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), DOWN);
                 try {
                     Thread.sleep(floorTime);
@@ -133,15 +124,27 @@ class Elevator implements GenericElevator {
                     Building.getInstance().generatePerson(10, 1);
                     i = getLocation();
                 }
+                if(Building.TEST == 4) {
+                    if(i == 5 && Building.getInstance().getNumberOfPeopleGenerated() == 3) {
+                        //Elevator 4 should respond to this.
+                        Building.getInstance().generatePerson(3, 1);
+                        i = getLocation();
+                    }
+                }
             }
         }
-        openDoors();
-        closeDoors();
     }
 
     @Override
-    public void openDoors() throws ElevatorSystemException {
+    public void stop() throws ElevatorSystemException {
+        openDoors();
+        //TODO: EventLogger.print("Print why elevator is stopping.");
+        closeDoors();
+    }
+
+    private void openDoors() throws ElevatorSystemException {
         setDoorsClosed(false);
+        EventLogger.print("Elevator " + getElevatorId() + " Doors Open");
         try {
             long doorTime = Long.parseLong(SystemConfiguration.getConfiguration("doorTime"));
             ElevatorDisplay.getInstance().openDoors(getElevatorId());
@@ -153,18 +156,64 @@ class Elevator implements GenericElevator {
         }
     }
 
-    @Override
-    public void closeDoors() {
+    private void closeDoors() throws ElevatorSystemException {
         setDoorsClosed(true);
+        EventLogger.print("Elevator " + getElevatorId() + " Doors Close");
         ElevatorDisplay.getInstance().closeDoors(getElevatorId());
     }
 
-    void enterRider() throws ElevatorSystemException {
-        setNumberOfRiders(1 + getNumberOfRiders());
-        EventLogger.print("E-" + getElevatorId() + " has " + getNumberOfRiders() + " riders.");
+    void enterRider(int personId, int destinationFloor) throws ElevatorSystemException {
+        addRiderRequest(destinationFloor);
+        addRider(personId);
+        EventLogger.print("Person P" + personId + " has entered Elevator " + getElevatorId() + " [Riders: " + printListOfRiders() + "]");
+
     }
-    void exitRider() throws ElevatorSystemException {
-        setNumberOfRiders(getNumberOfRiders() - 1);
+    void exitRider(int personId, int floorNumber) throws ElevatorSystemException {
+        removeRiderRequest(floorNumber);
+        removeRider(personId);
+        EventLogger.print("Person P" + personId + " has left Elevator " + getElevatorId() + " [Riders: " + printListOfRiders() + "]");
+    }
+
+    void addRiderRequest(int destinationFloor) {
+        if(!getRiderRequests().contains(destinationFloor)) {
+            getRiderRequests().add(destinationFloor);
+        }
+    }
+    void removeRiderRequest(int floorNumber) {
+        Integer o = new Integer(floorNumber);
+        if(getRiderRequests().contains(o)) {
+            getRiderRequests().remove(o);
+        }
+    }
+
+    void addRider(int personId) throws ElevatorSystemException {
+        if(!getRiders().contains(personId)) {
+            int maxCapacity = Integer.parseInt(SystemConfiguration.getConfiguration("elevatorCapacity"));
+            int numberOfRiders = getNumberOfRiders();
+            if(numberOfRiders == maxCapacity) {
+                throw new ElevatorSystemException("The maximum elevator capacity is " + maxCapacity + " riders only.");
+            }
+            getRiders().add(personId);
+        }
+    }
+    void removeRider(int personId) {
+        Integer o = new Integer(personId);
+        if(getRiders().contains(o)) {
+            getRiders().remove(o);
+        }
+    }
+
+    private List<Integer> getRiders() {
+        return riders;
+    }
+
+    private List<Integer> getRiderRequests() {
+        return this.riderRequests;
+    }
+
+    List<Integer> getCopyOfListOfRiders() {
+        List<Integer> copyOfRiders = getRiderRequests().stream().collect(Collectors.toList());
+        return copyOfRiders;
     }
 
     int getElevatorId() {
@@ -178,8 +227,11 @@ class Elevator implements GenericElevator {
         return nextFloorQueueReversed;
     }
 
-    private int getNumberOfRiders() {
-        return numberOfRiders;
+    int getNumberOfRiders() {
+        if(getRiders().isEmpty()) {
+            return 0;
+        }
+        return getRiders().size();
     }
 
     private void setElevatorId(int elevatorId) {
@@ -204,7 +256,7 @@ class Elevator implements GenericElevator {
 
     void setIdle() throws ElevatorSystemException {
 
-        EventLogger.print("E-" + getElevatorId() + " idling at F-" + getLocation());
+        EventLogger.print("Elevator " + getElevatorId() + " idling it out at Floor " + getLocation());
 
         try {
             Thread.sleep(Long.parseLong(SystemConfiguration.getConfiguration("timeout")) * 1000L);
@@ -219,14 +271,6 @@ class Elevator implements GenericElevator {
 
     private void setDoorsClosed(boolean doorsClosed) {
         this.doorsClosed = doorsClosed;
-    }
-
-    private void setNumberOfRiders(int numberOfRiders) throws ElevatorSystemException {
-        int maxCapacity = Integer.parseInt(SystemConfiguration.getConfiguration("elevatorCapacity"));
-        if(numberOfRiders < 0 || numberOfRiders > maxCapacity) {
-            throw new ElevatorSystemException("Elevator capacity is between 0 and " + maxCapacity);
-        }
-        this.numberOfRiders = numberOfRiders;
     }
 
     boolean isDispatched() {
@@ -257,12 +301,9 @@ class Elevator implements GenericElevator {
         this.dispatchedForFloor = dispatchedForFloor;
     }
 
-    void addNextStop(int next) throws ElevatorSystemException {
+    void addNextStop(int next) {
         if(!getNextFloorQueue().contains(next)) {
             getNextFloorQueue().offer(next);
-            EventLogger.print("E-" + getElevatorId() + " next stops: " + listNextStops());
-        } else {
-            EventLogger.print("E-" + getElevatorId() + " already contains next stop F-" + next + ". Next stops: " + listNextStops());
         }
     }
 
@@ -272,34 +313,26 @@ class Elevator implements GenericElevator {
         }
         return null;
     }
-    Integer pollNextStop() throws ElevatorSystemException {
+    Integer pollNextStop() {
         if(peekNextStop() != null) {
             int next = getNextFloorQueue().poll();
-            EventLogger.print("E-" + getElevatorId() + " next stops: " + listNextStops());
             return next;
         }
         return null;
     }
-    boolean iHaveNoMoreStops() {
+    boolean noMoreStops() {
         if(peekNextStop() == null) {
             return true;
         }
         return false;
     }
-    String listNextStops() {
-        Iterator iterator = getNextFloorQueue().iterator();
-        StringBuilder sb = new StringBuilder("[");
-        while(iterator.hasNext()) {
-            sb.append(iterator.next());
-            sb.append(", ");
-        }
-        int l = sb.length();
-        if(l > 2) {
-            sb.deleteCharAt(l - 1);
-            sb.deleteCharAt(l - 2);
-        }
-        sb.append("]");
-        return sb.toString();
+
+    String printListOfRiderRequests() {
+        return Building.listToString(getRiderRequests(), "", ", ", "");
+    }
+
+    String printListOfRiders() {
+        return Building.listToString(getRiders(), "P", ", ", "");
     }
 
 }

@@ -42,12 +42,10 @@ class Person implements Rider, Observer {
         int destination = getDestinationFloor();
         int origin = getOriginFloor();
         Direction direction = (destination > origin) ? Direction.UP : Direction.DOWN;
-
         if(destination == origin) {
             return;
         }
-
-        EventLogger.print("P-" + getId() +  " pressed " + direction.toString() + " on F-" + getOriginFloor() + ". Going " + direction.toString() + " to F-" + getDestinationFloor() + ".");
+        EventLogger.print("Person P" + getId() + " presses " + direction.toString() + " on Floor " + origin);
         Building.getInstance().relayFloorRequestToControlCenter(origin, direction);
     }
 
@@ -55,22 +53,18 @@ class Person implements Rider, Observer {
     public void boardElevator(int elevatorId) throws ElevatorSystemException {
         int destination = getDestinationFloor();
         int origin = getOriginFloor();
-        Direction direction = (destination > origin) ? Direction.UP : Direction.DOWN;
-
         setStatus(RiderStatus.RIDING);
         setElevatorBoardedOn(elevatorId);
         setBoardingTime(System.nanoTime());
-        EventLogger.print("P-" + getId() + " on F-" + origin + " boarded E-" + getElevatorBoardedOn() + " and is going " + direction.toString() + " to F-" + destination);
-        EventLogger.print("P-" + getId() + " pressed " + getDestinationFloor() + " in E-" + elevatorId);
-        Building.getInstance().relayElevatorRequestToControlCenter(elevatorId, destination, origin);
+
+        Building.getInstance().relayElevatorRequestToControlCenter(elevatorId, destination, origin, getId());
     }
 
     @Override
     public void exitElevator(int elevatorId) throws ElevatorSystemException {
         setStatus(RiderStatus.DONE);
         setExitTime(System.nanoTime());
-        EventLogger.print("P-" + getId() + " exits E-" + elevatorId + " on F-" + getDestinationFloor());
-        Building.getInstance().relayExitRiderFromElevatorMessage(elevatorId, getDestinationFloor());
+        Building.getInstance().relayExitRiderFromElevatorMessage(elevatorId, getDestinationFloor(), getId());
     }
 
     @Override
@@ -92,11 +86,7 @@ class Person implements Rider, Observer {
         if(getStatus() == RiderStatus.WAITING) {
             if(floorNumber == originFloor) {
                 if(intendedDirection == directionOfElevator || intendedDirection == directionDispatchedFor) {
-                    //board elevator and request floor immediately.
                     boardElevator(elevatorId);
-                    return;
-                } else {
-                    EventLogger.print("E" + elevatorId + " serving " + directionOfElevator.toString() + ". P" + getId() + " going " + intendedDirection.toString() + " ...ignore...");
                 }
             }
         }
