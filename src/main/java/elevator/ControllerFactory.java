@@ -9,6 +9,8 @@ class ControllerFactory {
         switch(SystemConfiguration.getConfiguration("controller")) {
             case "alpha":
                 return new ControllerAlpha();
+            case "beta":
+                return new ControllerBeta();
             default:
                 return new ControllerNull();
         }

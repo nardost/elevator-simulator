@@ -3,6 +3,7 @@ package elevator;
 import gui.ElevatorDisplay;
 
 import java.util.*;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
 
 import static gui.ElevatorDisplay.Direction.DOWN;
@@ -22,8 +23,8 @@ class Elevator implements GenericElevator {
     private List<Integer> riderRequests = new ArrayList<>();
     private List<Integer> riders = new ArrayList<>();
 
-    private PriorityQueue<Integer> nextFloorQueueNatural = new PriorityQueue<>(Comparator.naturalOrder());
-    private PriorityQueue<Integer> nextFloorQueueReversed = new PriorityQueue<>(Comparator.reverseOrder());
+    private PriorityBlockingQueue<Integer> nextFloorQueueNatural = new PriorityBlockingQueue<>(20, Comparator.naturalOrder());
+    private PriorityBlockingQueue<Integer> nextFloorQueueReverse = new PriorityBlockingQueue<>(20, Comparator.reverseOrder());
 
     private static int instanceCounter = 0;
 
@@ -81,7 +82,6 @@ class Elevator implements GenericElevator {
             EventLogger.print("Elevator " + getElevatorId() + " has accomplished its mission.");
             return;
         }
-
 
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
@@ -220,11 +220,11 @@ class Elevator implements GenericElevator {
         return elevatorId;
     }
 
-    PriorityQueue<Integer> getNextFloorQueue() {
+    PriorityBlockingQueue<Integer> getNextFloorQueue() {
         if(getDirection() == Direction.UP) {
             return nextFloorQueueNatural;
         }
-        return nextFloorQueueReversed;
+        return nextFloorQueueReverse;
     }
 
     int getNumberOfRiders() {
