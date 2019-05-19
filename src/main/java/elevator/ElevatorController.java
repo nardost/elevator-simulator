@@ -40,6 +40,10 @@ class ElevatorController {
         controller.executeFloorRequest(fromFloorNumber, desiredDirection);
     }
 
+    void receiveFloorRequest(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
+        controller.executeFloorRequest(floorRequest, personId, time);
+    }
+
     void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
         Elevator e = getElevatorById(elevatorId);
         e.enterRider(personId, destinationFloor);

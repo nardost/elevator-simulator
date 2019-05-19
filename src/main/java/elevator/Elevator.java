@@ -328,11 +328,11 @@ class Elevator implements GenericElevator {
     }
 
     String printListOfRiderRequests() {
-        return Building.listToString(getRiderRequests(), "", ", ", "");
+        return Utility.listToString(getRiderRequests(), "", ", ", "");
     }
 
     String printListOfRiders() {
-        return Building.listToString(getRiders(), "P", ", ", "");
+        return Utility.listToString(getRiders(), "P", ", ", "");
     }
 
 }

@@ -83,8 +83,12 @@ public class Building implements Observable {
         return getObservers().size();
     }
 
+    //TODO: ths will be deleted once the new flyweight floor request version is functional...
     public void relayFloorRequestToControlCenter(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
         controlCenter.receiveFloorRequest(fromFloorNumber, desiredDirection);
+    }
+    public void relayFloorRequestToControlCenter(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
+        controlCenter.receiveFloorRequest(floorRequest, personId, time);
     }
 
     public void relayElevatorRequestToControlCenter(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
@@ -129,27 +133,5 @@ public class Building implements Observable {
         return zeroTime;
     }
     public static Instant getZeroInstant() { return zeroInstant; }
-
-    /**
-     * All utility methods like litToString() will be refactored to a separate
-     * Utility class.
-     * */
-    public static String listToString(List list, String prefix, String separator, String suffix) {
-        StringBuilder sb = new StringBuilder();
-        list.forEach(rider -> {
-            sb.append(prefix);
-            sb.append(rider.toString());
-            sb.append(suffix);
-            sb.append(separator);
-        });
-        int l = sb.length();
-        int s = separator.length();
-        if(l > s) {
-            for(int i = 1; i <= s; i++) {
-                sb.deleteCharAt(l - i);
-            }
-        }
-        return sb.toString();
-    }
 
 }

@@ -19,6 +19,11 @@ class ControllerNull implements Controller {
     }
 
     @Override
+    public void executeFloorRequest(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
+
+    }
+
+    @Override
     public void executeLocationUpdate(int elevatorId, int toFloorNumber, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
 
     }

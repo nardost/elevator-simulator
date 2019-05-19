@@ -36,6 +36,11 @@ class ControllerAlpha implements Controller {
     }
 
     @Override
+    public void executeFloorRequest(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
+        //TODO:
+    }
+
+    @Override
     public void executeLocationUpdate(int elevatorId, int elevatorLocation, Direction nowGoingInDirection, Direction directionDispatchedFor) throws ElevatorSystemException {
         Elevator e = ElevatorController.getInstance().getElevatorById(elevatorId);
         EventLogger.print(
@@ -204,7 +209,7 @@ class ControllerAlpha implements Controller {
 
     String printListOfFloorRequests() {
         List<Integer> list = new ArrayList<>(getFloorRequests().keySet());
-        return Building.listToString(list, "", ", ", "");
+        return Utility.listToString(list, "", ", ", "");
     }
 
 }

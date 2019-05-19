@@ -46,7 +46,9 @@ class Person implements Rider, Observer {
             return;
         }
         EventLogger.print("Person P" + getId() + " presses " + direction.toString() + " on Floor " + origin);
-        Building.getInstance().relayFloorRequestToControlCenter(origin, direction);
+        FloorRequestFlyweight floorRequest = FloorRequestFlyweightFactory.getInstance().getFloorRequest(Utility.encodeFloorRequestKey(origin, direction));
+        floorRequest.relayFloorRequest(getId(), getCreatedTime());
+        //Building.getInstance().relayFloorRequestToControlCenter(origin, direction);//TODO: Floor Request
     }
 
     @Override
