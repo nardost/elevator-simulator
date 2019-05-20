@@ -3,7 +3,9 @@ package elevator;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author ntessema
@@ -14,7 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class Building implements Observable {
 
-    public static int TEST;//absolutely for the tests only!!!
+    public static int TEST;//TODO: absolutely for the tests only!!!
 
     private int numberOfFloors;
     private int numberOfElevators;
@@ -83,12 +85,8 @@ public class Building implements Observable {
         return getObservers().size();
     }
 
-    //TODO: ths will be deleted once the new flyweight floor request version is functional...
     public void relayFloorRequestToControlCenter(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
         controlCenter.receiveFloorRequest(fromFloorNumber, desiredDirection);
-    }
-    public void relayFloorRequestToControlCenter(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
-        controlCenter.receiveFloorRequest(floorRequest, personId, time);
     }
 
     public void relayElevatorRequestToControlCenter(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
@@ -125,8 +123,54 @@ public class Building implements Observable {
         person.sendMeAnElevator();
     }
 
+    public void run() {
+        //TODO: Person generation code;
+        try {
+            Random random = new Random(1000);
+            int numberOfFloors = getNumberOfFloors();
+            long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            while (elapsedSeconds < 10L) {
+                int origin = 1 + random.nextInt(numberOfFloors);
+                int destination = 1 + random.nextInt(numberOfFloors);
+                generatePerson(origin, destination);
+                Thread.sleep(2000L);
+                elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            }
+        } catch(ElevatorSystemException ese) {
+            ese.getMessage();
+        } catch(InterruptedException ie) {
+            ie.printStackTrace();
+        }
+    }
+
+    public String generateReport() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n");
+        sb.append("Person\tStart Floor\tEnd Floor\tDirection\tWait Time\tRide Time\tTotal Time\n");
+        sb.append("------\t-----------\t---------\t---------\t---------\t---------\t----------\n");
+        getObservers().forEach(rider -> {
+            Person p = (Person) rider;
+            String id = Integer.toString(p.getId());
+            String origin = Integer.toString(p.getOriginFloor());
+            String destination = Integer.toString(p.getDestinationFloor());
+            String direction = Utility.evaluateDirection(p.getOriginFloor(), p.getDestinationFloor()).toString();
+            String waitTime = Long.toString(TimeUnit.SECONDS.convert((p.getBoardingTime() - p.getCreatedTime()), TimeUnit.NANOSECONDS));
+            String rideTime = Long.toString(TimeUnit.SECONDS.convert((p.getExitTime() - p.getBoardingTime()), TimeUnit.NANOSECONDS));
+            String totalTime = Long.toString(TimeUnit.SECONDS.convert((p.getExitTime() - p.getCreatedTime()), TimeUnit.NANOSECONDS));
+            sb.append(
+                    Utility.formatColumnString(id, 6) + "\t" +
+                    Utility.formatColumnString(origin, 11) + "\t" +
+                    Utility.formatColumnString(destination, 9) + "\t" +
+                    Utility.formatColumnString(direction, 9) + "\t" +
+                    Utility.formatColumnString(waitTime, 9) + "\t" +
+                    Utility.formatColumnString(rideTime, 9) + "\t" +
+                    Utility.formatColumnString(totalTime, 10) + "\n");
+        });
+        return sb.toString();
+    }
+
     public int getNumberOfPeopleGenerated() {
-        return getObservers().size();
+        return 0;
     }
 
     public static long getZeroTime() {

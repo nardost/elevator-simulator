@@ -36,12 +36,13 @@ class ElevatorController {
         return controlCenter;
     }
 
-    void receiveFloorRequest(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
-        controller.executeFloorRequest(fromFloorNumber, desiredDirection);
+    public void run() {
+        controller.run();
     }
 
-    void receiveFloorRequest(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
-        controller.executeFloorRequest(floorRequest, personId, time);
+    //TODO: old version. To be replaced by next method...
+    void receiveFloorRequest(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
+        controller.executeFloorRequest(fromFloorNumber, desiredDirection);
     }
 
     void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {

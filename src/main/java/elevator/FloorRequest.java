@@ -11,8 +11,19 @@ public class FloorRequest implements FloorRequestFlyweight {
     }
 
     @Override
+    public boolean equals(Object object) {
+        if(object instanceof FloorRequest) {
+            if(
+                (getFloorOfOrigin() == ((FloorRequest) object).getFloorOfOrigin()) &&
+                (getDirectionRequested() == ((FloorRequest) object).getDirectionRequested())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public void relayFloorRequest(int personId, long time) throws ElevatorSystemException {
-        Building.getInstance().relayFloorRequestToControlCenter(this, personId, time);
     }
 
     @Override

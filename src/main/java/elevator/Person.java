@@ -1,5 +1,6 @@
 package elevator;
 
+import java.time.Instant;
 import java.util.Objects;
 
 class Person implements Rider, Observer {
@@ -46,9 +47,7 @@ class Person implements Rider, Observer {
             return;
         }
         EventLogger.print("Person P" + getId() + " presses " + direction.toString() + " on Floor " + origin);
-        FloorRequestFlyweight floorRequest = FloorRequestFlyweightFactory.getInstance().getFloorRequest(Utility.encodeFloorRequestKey(origin, direction));
-        floorRequest.relayFloorRequest(getId(), getCreatedTime());
-        //Building.getInstance().relayFloorRequestToControlCenter(origin, direction);//TODO: Floor Request
+        Building.getInstance().relayFloorRequestToControlCenter(origin, direction);
     }
 
     @Override
@@ -58,7 +57,6 @@ class Person implements Rider, Observer {
         setStatus(RiderStatus.RIDING);
         setElevatorBoardedOn(elevatorId);
         setBoardingTime(System.nanoTime());
-
         Building.getInstance().relayElevatorRequestToControlCenter(elevatorId, destination, origin, getId());
     }
 
@@ -87,7 +85,7 @@ class Person implements Rider, Observer {
 
         if(getStatus() == RiderStatus.WAITING) {
             if(floorNumber == originFloor) {
-                if(intendedDirection == directionOfElevator || intendedDirection == directionDispatchedFor) {
+                if(intendedDirection == directionOfElevator) {// || intendedDirection == directionDispatchedFor) {
                     boardElevator(elevatorId);
                 }
             }

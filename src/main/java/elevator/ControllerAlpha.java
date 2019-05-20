@@ -9,6 +9,11 @@ class ControllerAlpha implements Controller {
     private HashMap<Integer, Direction> floorRequests = new HashMap<>();
 
     @Override
+    public void run() {
+
+    }
+
+    @Override
     public void announceLocationOfElevator(int elevatorId, int elevatorLocation, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
         Building.getInstance().notifyObservers(elevatorId, elevatorLocation, direction, directionDispatchedFor);
     }
@@ -24,7 +29,7 @@ class ControllerAlpha implements Controller {
                 " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests " + e.printListOfRiderRequests() + "]");
 
         e.move();
-        if(e.noMoreStops()) {
+        if(!e.nextStop()) {
             setIdleAndReturnToDefaultFloor(e.getElevatorId());
         }
     }
@@ -36,17 +41,12 @@ class ControllerAlpha implements Controller {
     }
 
     @Override
-    public void executeFloorRequest(FloorRequestFlyweight floorRequest, int personId, long time) throws ElevatorSystemException {
-        //TODO:
-    }
-
-    @Override
     public void executeLocationUpdate(int elevatorId, int elevatorLocation, Direction nowGoingInDirection, Direction directionDispatchedFor) throws ElevatorSystemException {
         Elevator e = ElevatorController.getInstance().getElevatorById(elevatorId);
         EventLogger.print(
                 "Elevator " + elevatorId + " moving from Floor " + elevatorLocation + " to Floor " + e.peekNextStop() +
                 " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + e.printListOfRiderRequests() + "]");
-        if(e.noMoreStops()) {
+        if(!e.nextStop()) {
             setIdleAndReturnToDefaultFloor(e.getElevatorId());
         } else {
             if(e.peekNextStop() == elevatorLocation) {

@@ -4,7 +4,7 @@
     <property name="numberOfElevators"  value="4" />
     <property name="elevatorCapacity"  value="50" />
     <property name="floorTime"          value="1" />
-    <property name="doorTime"           value="1" />
+    <property name="doorTime"           value="2" />
     <property name="timeout"            value="10" />
     <property name="defaultFloor"       value="1" />
     <property name="logger"             value="file" />

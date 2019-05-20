@@ -1,6 +1,9 @@
 package elevator;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Utility {
     static int decodeFloorRequestFloor(String key) throws ElevatorSystemException {
@@ -67,6 +70,43 @@ public class Utility {
             }
         }
         return sb.toString();
+    }
+
+    public static Direction evaluateDirection(int from, int to) {
+        if(from == to) {
+            return Direction.IDLE;
+        }
+        return (from > to) ? Direction.DOWN : Direction.UP;
+    }
+
+    public static String formatColumnString(String str, int cols) {
+        StringBuilder sb = new StringBuilder();
+        if(str.length() < cols) {
+            for(int i = 0; i < cols - str.length(); i++) {
+                sb.append(" ");
+            }
+            sb.append(str);
+            return sb.toString();
+        }
+        return str;
+    }
+
+    public static String formatElapsedInstant() throws ElevatorSystemException  {//uses Instant
+        long elapsed = Duration.between(Building.getInstance().getZeroInstant(), Instant.now()).toNanos();
+        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsed, TimeUnit.NANOSECONDS);
+        long s = elapsedSeconds % 60;
+        long m = ((elapsedSeconds - s) % 3600) / 60;
+        long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
+        return String.format("%02d:%02d:%02d", h, m, s);
+    }
+
+    public static String formatElapsedTime(long nanoTime) throws ElevatorSystemException  {//uses System.nanoTime()
+        long elapsedTime = nanoTime - Building.getInstance().getZeroTime();
+        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
+        long s = elapsedSeconds % 60;
+        long m = ((elapsedSeconds - s) % 3600) / 60;
+        long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
+        return String.format("%02d:%02d:%02d", h, m, s);
     }
 }
 
