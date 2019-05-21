@@ -49,7 +49,7 @@ class Elevator implements GenericElevator {
     void run() {
         try {
             long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
-            while (elapsedSeconds < 180L) {
+            while (elapsedSeconds < 600L) {
 
                 if (nextStop()) {
                     move();

@@ -1,5 +1,6 @@
 package elevator;
 
+import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -107,6 +108,15 @@ public class Utility {
         long m = ((elapsedSeconds - s) % 3600) / 60;
         long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
         return String.format("%02d:%02d:%02d", h, m, s);
+    }
+
+    public static String nanoToRoundedSeconds(long nano, int decimalPlaces) {
+        StringBuilder sb = new StringBuilder("0.");
+        for(int i = 0; i < decimalPlaces; i++) {
+            sb.append("0");
+        }
+        DecimalFormat df = new DecimalFormat(sb.toString());
+        return df.format(new Long(TimeUnit.MILLISECONDS.convert(nano, TimeUnit.NANOSECONDS)).doubleValue() / 1000.0);
     }
 }
 

@@ -1,5 +1,7 @@
 package elevator;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -128,13 +130,16 @@ public class Building implements Observable {
         try {
             Random random = new Random(97);
             int numberOfFloors = getNumberOfFloors();
-            long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
-            while (elapsedSeconds < 20L) {
+            long elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            while (elapsedSeconds < 120000L) {
                 int origin = 1 + random.nextInt(numberOfFloors);
                 int destination = 1 + random.nextInt(numberOfFloors);
+                if(origin == destination) {
+                    System.out.println("ORIGIN = DESTINATION");
+                }
                 generatePerson(origin, destination);
                 Thread.sleep(2000L);
-                elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+                elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
@@ -154,9 +159,9 @@ public class Building implements Observable {
             String origin = Integer.toString(p.getOriginFloor());
             String destination = Integer.toString(p.getDestinationFloor());
             String direction = Utility.evaluateDirection(p.getOriginFloor(), p.getDestinationFloor()).toString();
-            String waitTime = Long.toString(TimeUnit.SECONDS.convert((p.getBoardingTime() - p.getCreatedTime()), TimeUnit.NANOSECONDS));
-            String rideTime = Long.toString(TimeUnit.SECONDS.convert((p.getExitTime() - p.getBoardingTime()), TimeUnit.NANOSECONDS));
-            String totalTime = Long.toString(TimeUnit.SECONDS.convert((p.getExitTime() - p.getCreatedTime()), TimeUnit.NANOSECONDS));
+            String waitTime = Utility.nanoToRoundedSeconds(p.getBoardingTime() - p.getCreatedTime(), 1);
+            String rideTime = Utility.nanoToRoundedSeconds(p.getExitTime() - p.getBoardingTime(), 1);
+            String totalTime = Utility.nanoToRoundedSeconds(p.getExitTime() - p.getCreatedTime(), 1);
             sb.append(
                     Utility.formatColumnString(id, 6) + "\t" +
                     Utility.formatColumnString(origin, 11) + "\t" +
@@ -169,9 +174,6 @@ public class Building implements Observable {
         return sb.toString();
     }
 
-    public int getNumberOfPeopleGenerated() {
-        return 0;
-    }
 
     public static long getZeroTime() {
         return zeroTime;

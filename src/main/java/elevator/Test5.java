@@ -5,7 +5,7 @@ import gui.ElevatorDisplay;
 public class Test5 {
     public static void main(String[] args) {
         try {
-            EventLogger.print("......................................TEST Starting Up................................");
+            EventLogger.print("......................................TEST Starting Up....................................");
 
             int numFloor = Building.getInstance().getNumberOfFloors();
             int numElev = Building.getInstance().getNumberOfElevators();
@@ -45,7 +45,7 @@ public class Test5 {
                 ie.printStackTrace();
             }
             EventLogger.print(Building.getInstance().generateReport());
-            EventLogger.print("......................................TEST DONE.......................................");
+            EventLogger.print("......................................TEST DONE...........................................");
         } catch (ElevatorSystemException ese) {
             System.out.println(ese.getMessage());
         }
