@@ -44,6 +44,10 @@ class Person implements Rider, Observer {
         int origin = getOriginFloor();
         Direction direction = (destination > origin) ? Direction.UP : Direction.DOWN;
         if(destination == origin) {
+            EventLogger.print("Person P" + getId() + " does not need an elevator.");
+            setBoardingTime(getCreatedTime());
+            setExitTime(getCreatedTime());
+            setStatus(RiderStatus.DONE);
             return;
         }
         EventLogger.print("Person P" + getId() + " presses " + direction.toString() + " on Floor " + origin);

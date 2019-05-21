@@ -11,8 +11,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static gui.ElevatorDisplay.Direction.DOWN;
-import static gui.ElevatorDisplay.Direction.UP;
+import static gui.ElevatorDisplay.Direction.*;
 
 class Elevator implements GenericElevator {
 
@@ -118,16 +117,11 @@ class Elevator implements GenericElevator {
                 "Elevator " + elevatorId + " moving from Floor " + getLocation() + " to Floor " + peekNextStop() +
                         " [Current Floor Requests: " + ElevatorController.getInstance().printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
         long floorTime = 1000L * (long) getSpeed();
-        if(peekNextStop() == null) {
-            EventLogger.print("No more stops.... Exiting...");
-            return;
-        }
-        int floor = pollNextStop();//peekNextStop();
+        int floor = pollNextStop();
         if(doorsOpen()) {
             closeDoors();
         }
         if(floor == getLocation()) {
-            //pollNextStop();
             openDoors();
             Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
@@ -145,11 +139,12 @@ class Elevator implements GenericElevator {
                 }
                 setLocation(i);
                 if(floor == getLocation()) {
-                    pollNextStop();
+                    //pollNextStop();
                     openDoors();
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             }
+            ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), IDLE);
         } else {
             for (int i = getLocation(); i >= floor; i--) {
                 setDirection(Direction.DOWN);
@@ -161,19 +156,13 @@ class Elevator implements GenericElevator {
                 }
                 setLocation(i);
                 if(floor == getLocation()) {
-                    pollNextStop();
+                    //pollNextStop();
                     openDoors();
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             }
+            ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), IDLE);
         }
-    }
-
-    @Override
-    public void stop() throws ElevatorSystemException {
-        openDoors();
-        //TODO: EventLogger.print("Print why elevator is stopping.");
-        closeDoors();
     }
 
     private void openDoors() throws ElevatorSystemException {
