@@ -1,5 +1,6 @@
 package elevator;
 
+import com.sun.xml.internal.bind.v2.model.core.ID;
 import gui.ElevatorDisplay;
 
 import java.util.ArrayList;
@@ -7,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static gui.ElevatorDisplay.Direction.DOWN;
@@ -47,22 +49,36 @@ class Elevator implements GenericElevator {
 
     void run() {
         try {
-            while (nextStop()) {
-                move();
-            }
-            if (getLocation() != getDefaultFloor()) {
-                ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
-                closeDoors();
-                setIdle();
-                addNextStop(getDefaultFloor());
-                setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
-                EventLogger.print("Going to default floor " + peekNextStop());
-                move();
-            } else {
-                closeDoors();
+            long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            while (elapsedSeconds < 180L) {
+
+                if (nextStop()) {
+                    move();
+                }
+
+                if (getLocation() != getDefaultFloor()) {
+                    ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
+                    closeDoors();
+                    setIdle();
+                    addNextStop(getDefaultFloor());
+                    setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
+                    move();
+                    setDirection(Direction.IDLE);
+                    if(doorsOpen()) {
+                        closeDoors();
+                    }
+                } else {
+                   if(doorsOpen()) {
+                       closeDoors();
+                   }
+                }
+                Thread.sleep(500L);
+                elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
+        } catch(InterruptedException ie) {
+            ie.printStackTrace();
         }
     }
 
@@ -98,17 +114,20 @@ class Elevator implements GenericElevator {
     @Override
     public void move() throws ElevatorSystemException {
 
+        EventLogger.print(
+                "Elevator " + elevatorId + " moving from Floor " + getLocation() + " to Floor " + peekNextStop() +
+                        " [Current Floor Requests: " + ElevatorController.getInstance().printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
         long floorTime = 1000L * (long) getSpeed();
         if(peekNextStop() == null) {
             EventLogger.print("No more stops.... Exiting...");
             return;
         }
-        int floor = peekNextStop();
+        int floor = pollNextStop();//peekNextStop();
         if(doorsOpen()) {
             closeDoors();
         }
         if(floor == getLocation()) {
-            pollNextStop();
+            //pollNextStop();
             openDoors();
             Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
@@ -289,7 +308,7 @@ class Elevator implements GenericElevator {
     }
 
     void setIdle() throws ElevatorSystemException {
-
+        setDirection(Direction.IDLE);
         EventLogger.print("Elevator " + getElevatorId() + " idling it out at Floor " + getLocation());
 
         try {
@@ -344,13 +363,13 @@ class Elevator implements GenericElevator {
             if(!getReverseNextFloorQueue().contains(next)) {
                 getReverseNextFloorQueue().offer(next);
 
-                System.out.println("saved in reverse");
+                System.out.println("saved in reverse of " + getElevatorId());
             }
             return;
         }
         if(!getNaturalNextFloorQueue().contains(next)) {
             getNaturalNextFloorQueue().offer(next);
-            System.out.println("saved in natural");
+            System.out.println("saved in natural of " + getElevatorId());
         }
 
     }

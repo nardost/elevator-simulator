@@ -126,10 +126,10 @@ public class Building implements Observable {
     public void run() {
         //TODO: Person generation code;
         try {
-            Random random = new Random(1000);
+            Random random = new Random(97);
             int numberOfFloors = getNumberOfFloors();
             long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
-            while (elapsedSeconds < 10L) {
+            while (elapsedSeconds < 20L) {
                 int origin = 1 + random.nextInt(numberOfFloors);
                 int destination = 1 + random.nextInt(numberOfFloors);
                 generatePerson(origin, destination);

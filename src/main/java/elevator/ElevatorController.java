@@ -1,6 +1,5 @@
 package elevator;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +39,6 @@ class ElevatorController {
         controller.run();
     }
 
-    //TODO: old version. To be replaced by next method...
     void receiveFloorRequest(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
         controller.executeFloorRequest(fromFloorNumber, desiredDirection);
     }
@@ -96,5 +94,9 @@ class ElevatorController {
 
     private List<Elevator> getElevators() {
         return elevators;
+    }
+
+    String printListOfFloorRequests() {
+        return "";
     }
 }

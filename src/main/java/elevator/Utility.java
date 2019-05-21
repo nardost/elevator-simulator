@@ -56,9 +56,9 @@ public class Utility {
 
     public static String listToString(List list, String prefix, String separator, String suffix) {
         StringBuilder sb = new StringBuilder();
-        list.forEach(rider -> {
+        list.forEach(x -> {
             sb.append(prefix);
-            sb.append(rider.toString());
+            sb.append(x.toString());
             sb.append(suffix);
             sb.append(separator);
         });

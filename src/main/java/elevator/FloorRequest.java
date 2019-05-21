@@ -29,7 +29,7 @@ public class FloorRequest implements FloorRequestFlyweight {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(Integer.toString(getFloorOfOrigin()));
-        sb.append((directionRequested == Direction.UP) ? "U" : "D");
+        sb.append(directionRequested.toString());
         return sb.toString();
     }
 

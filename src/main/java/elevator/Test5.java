@@ -24,21 +24,23 @@ public class Test5 {
                 threads[i - 1] = new Thread(() -> e.run());
                 threads[i - 1].setName("THREAD_ELEVATOR_" + i);
             }
-            Thread controllerThread = new Thread(() -> ec.run());
-            controllerThread.setName("THREAD_CONTROLLER");
-            controllerThread.start();
             Thread buildingThread = new Thread(() -> building.run());
             buildingThread.setName("THREAD_BUILDING");
+            Thread controllerThread = new Thread(() -> ec.run());
+            controllerThread.setName("THREAD_CONTROLLER");
+
             for(int i = 1; i <= numberOfElevators; i++) {
                 threads[i - 1].start();
             }
             buildingThread.start();
+            //controllerThread.start();
+
             try {
                 for(int i = 1; i <= numberOfElevators; i++) {
                     threads[i - 1].join();
                 }
                 buildingThread.join();
-                controllerThread.join();
+                //controllerThread.join();
             } catch(InterruptedException ie) {
                 ie.printStackTrace();
             }
