@@ -148,7 +148,7 @@ public class Building implements Observable {
         }
     }
 
-    public String generateReport() {
+    public String generateFormattedReport() {
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         sb.append("Person\tStart Floor\tEnd Floor\tDirection\tWait Time\tRide Time\tTotal Time\n");

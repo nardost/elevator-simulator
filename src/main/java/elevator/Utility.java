@@ -89,7 +89,7 @@ public class Utility {
             sb.append(str);
             return sb.toString();
         }
-        return str;
+        return str.substring(0, cols);
     }
 
     public static String formatElapsedInstant() throws ElevatorSystemException  {//uses Instant

@@ -44,7 +44,7 @@ public class Test5 {
             } catch(InterruptedException ie) {
                 ie.printStackTrace();
             }
-            EventLogger.print(Building.getInstance().generateReport());
+            EventLogger.print(Building.getInstance().generateFormattedReport());
             EventLogger.print("......................................TEST DONE...........................................");
         } catch (ElevatorSystemException ese) {
             System.out.println(ese.getMessage());

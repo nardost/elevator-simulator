@@ -7,13 +7,16 @@ import java.util.stream.Collectors;
 class ControllerBeta implements Controller {
 
     private AbstractQueue<FloorRequest> floorRequestQueue;
-    private final int NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
-    private final int NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
 
     private int serviceCount = 0;
 
-    ControllerBeta() {
-        this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
+    ControllerBeta() throws ElevatorSystemException {
+        try {
+            final int NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
+            this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
+        } catch (NumberFormatException nfe) {
+            throw new ElevatorSystemException("Bad format in number of elevators. Check config file.");
+        }
     }
 
     @Override
