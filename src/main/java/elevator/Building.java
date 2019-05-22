@@ -130,16 +130,16 @@ public class Building implements Observable {
             Random random = new Random(97);
             int numberOfFloors = getNumberOfFloors();
             long elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
-            long simulationDuration = Integer.parseInt(SystemConfiguration.getConfiguration("simulationDuration"));
-            long creationRate = Integer.parseInt(SystemConfiguration.getConfiguration("creationRate"));
-            while (elapsedSeconds < simulationDuration * 1000L) {
+            final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
+            final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
+            while (elapsedSeconds < SIMULATION_DURATION * 1000L) {
                 int origin = 1 + random.nextInt(numberOfFloors);
                 int destination = 1 + random.nextInt(numberOfFloors);
                 if(origin == destination) {
                     System.out.println("ORIGIN = DESTINATION");
                 }
                 generatePerson(origin, destination);
-                Thread.sleep(creationRate * 1000L);
+                Thread.sleep(CREATION_RATE * 1000L);
                 elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
         } catch(ElevatorSystemException ese) {

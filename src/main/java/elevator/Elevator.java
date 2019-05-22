@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static gui.ElevatorDisplay.Direction.*;
 
@@ -19,7 +18,7 @@ class Elevator implements GenericElevator {
     private int location;
     private Direction direction;
     private boolean dispatched;
-    private int dispatchedForFloor; //U-turn point
+    private int dispatchedForFloor; //U-turn point. Currently unused.
     private Direction dispatchedToServeDirection;
     private boolean doorsOpen;
     private static int defaultFloor;
@@ -48,7 +47,8 @@ class Elevator implements GenericElevator {
     void run() {
         try {
             long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
-            while (elapsedSeconds < 600L) {
+            final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
+            while (elapsedSeconds < SIMULATION_DURATION * 5L) {
 
                 if (nextStop()) {
                     move();
@@ -138,7 +138,6 @@ class Elevator implements GenericElevator {
                 }
                 setLocation(i);
                 if(floor == getLocation()) {
-                    //pollNextStop();
                     openDoors();
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
@@ -155,7 +154,6 @@ class Elevator implements GenericElevator {
                 }
                 setLocation(i);
                 if(floor == getLocation()) {
-                    //pollNextStop();
                     openDoors();
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
@@ -241,11 +239,6 @@ class Elevator implements GenericElevator {
         return this.riderRequests;
     }
 
-    List<Integer> getCopyOfListOfRiders() {
-        List<Integer> copyOfRiders = getRiderRequests().stream().collect(Collectors.toList());
-        return copyOfRiders;
-    }
-
     int getElevatorId() {
         return elevatorId;
     }
@@ -297,7 +290,7 @@ class Elevator implements GenericElevator {
 
     void setIdle() throws ElevatorSystemException {
         setDirection(Direction.IDLE);
-        EventLogger.print("Elevator " + getElevatorId() + " idling it out at Floor " + getLocation());
+        EventLogger.print("Elevator " + getElevatorId() + " going idle at Floor " + getLocation());
 
         try {
             Thread.sleep(Long.parseLong(SystemConfiguration.getConfiguration("timeout")) * 1000L);
