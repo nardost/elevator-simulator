@@ -126,25 +126,28 @@ public class Building implements Observable {
     }
 
     public void run() {
-        //TODO: Person generation code;
         try {
             Random random = new Random(97);
             int numberOfFloors = getNumberOfFloors();
             long elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
-            while (elapsedSeconds < 120000L) {
+            long simulationDuration = Integer.parseInt(SystemConfiguration.getConfiguration("simulationDuration"));
+            long creationRate = Integer.parseInt(SystemConfiguration.getConfiguration("creationRate"));
+            while (elapsedSeconds < simulationDuration * 1000L) {
                 int origin = 1 + random.nextInt(numberOfFloors);
                 int destination = 1 + random.nextInt(numberOfFloors);
                 if(origin == destination) {
                     System.out.println("ORIGIN = DESTINATION");
                 }
                 generatePerson(origin, destination);
-                Thread.sleep(2000L);
+                Thread.sleep(creationRate * 1000L);
                 elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
         } catch(InterruptedException ie) {
             ie.printStackTrace();
+        } catch(NumberFormatException nfe) {
+            nfe.printStackTrace();
         }
     }
 

@@ -1,6 +1,5 @@
 package elevator;
 
-import com.sun.xml.internal.bind.v2.model.core.ID;
 import gui.ElevatorDisplay;
 
 import java.util.ArrayList;
