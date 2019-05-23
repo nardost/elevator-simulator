@@ -3,6 +3,7 @@ package elevator;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -48,6 +49,10 @@ public class Building implements Observable {
             }
         }
         return theBuilding;
+    }
+
+    public void start() throws ElevatorSystemException {
+        controlCenter.run();
     }
 
     /**
@@ -136,7 +141,7 @@ public class Building implements Observable {
                 int origin = 1 + random.nextInt(numberOfFloors);
                 int destination = 1 + random.nextInt(numberOfFloors);
                 if(origin == destination) {
-                    System.out.println("ORIGIN = DESTINATION");
+                    continue;
                 }
                 generatePerson(origin, destination);
                 Thread.sleep(CREATION_RATE * 1000L);
@@ -152,28 +157,76 @@ public class Building implements Observable {
     }
 
     public String generateFormattedReport() {
+        final int TOTAL_NUMBER_OF_PEOPLE = getObservers().size();
+        long waitTimes[] = new long[TOTAL_NUMBER_OF_PEOPLE];
+        long minWaitTime;
+        long maxWaitTime;
+        long totalWaitTime;
+        double averageWaitTime;
+        int personWithMinWaitTime;
+        int personWithMaxWaitTime;
+        long rideTimes[] = new long[TOTAL_NUMBER_OF_PEOPLE];
+        long minRideTime;
+        long maxRideTime;
+        long totalRideTime;
+        double averageRideTime;
+        int personWithMinRideTime;
+        int personWithMaxRideTime;
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         sb.append("Person\tStart Floor\tEnd Floor\tDirection\tWait Time\tRide Time\tTotal Time\n");
         sb.append("------\t-----------\t---------\t---------\t---------\t---------\t----------\n");
         getObservers().forEach(rider -> {
             Person p = (Person) rider;
-            String id = Integer.toString(p.getId());
+            long waitTime = p.getBoardingTime() - p.getCreatedTime();
+            long rideTime = p.getExitTime() - p.getBoardingTime();
+            long totalTime = p.getExitTime() - p.getCreatedTime();
+
+            waitTimes[p.getId() - 1] = waitTime;
+            rideTimes[p.getId() - 1] = rideTime;
+
+            String id = "P" + p.getId();
             String origin = Integer.toString(p.getOriginFloor());
             String destination = Integer.toString(p.getDestinationFloor());
             String direction = Utility.evaluateDirection(p.getOriginFloor(), p.getDestinationFloor()).toString();
-            String waitTime = Utility.nanoToRoundedSeconds(p.getBoardingTime() - p.getCreatedTime(), 1);
-            String rideTime = Utility.nanoToRoundedSeconds(p.getExitTime() - p.getBoardingTime(), 1);
-            String totalTime = Utility.nanoToRoundedSeconds(p.getExitTime() - p.getCreatedTime(), 1);
+            String waitTimeStr = Utility.nanoToRoundedSeconds(waitTime, 1);
+            String rideTimeStr = Utility.nanoToRoundedSeconds(rideTime, 1);
+            String totalTimeStr = Utility.nanoToRoundedSeconds(totalTime, 1);
             sb.append(
                     Utility.formatColumnString(id, 6) + "\t" +
                     Utility.formatColumnString(origin, 11) + "\t" +
                     Utility.formatColumnString(destination, 9) + "\t" +
                     Utility.formatColumnString(direction, 9) + "\t" +
-                    Utility.formatColumnString(waitTime, 9) + "\t" +
-                    Utility.formatColumnString(rideTime, 9) + "\t" +
-                    Utility.formatColumnString(totalTime, 10) + "\n");
+                    Utility.formatColumnString(waitTimeStr, 9) + "\t" +
+                    Utility.formatColumnString(rideTimeStr, 9) + "\t" +
+                    Utility.formatColumnString(totalTimeStr, 10) + "\n");
         });
+
+        minWaitTime = Arrays.stream(waitTimes).summaryStatistics().getMin();
+        maxWaitTime = Arrays.stream(waitTimes).summaryStatistics().getMax();
+        totalWaitTime = Arrays.stream(waitTimes).summaryStatistics().getSum();
+        averageWaitTime = /*Arrays.stream(waitTimes).summaryStatistics().getAverage();*/new Long(totalWaitTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
+        minRideTime = Arrays.stream(rideTimes).min().getAsLong();//.summaryStatistics().getMin();//.min().getAsLong();
+        maxRideTime = Arrays.stream(rideTimes).summaryStatistics().getMax();//.max().getAsLong();
+        totalRideTime = Arrays.stream(rideTimes).sum();
+        averageRideTime = /*Arrays.stream(rideTimes).summaryStatistics().getAverage();*/new Long(totalRideTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
+
+        StringBuilder psb = new StringBuilder("(P");
+
+        sb.append("\n");
+        sb.append("Average Wait Time: " + Utility.formatColumnString(Double.toString(averageWaitTime), 6) + " sec\n");
+        sb.append("Average Ride Time: " + Utility.formatColumnString(Double.toString(averageRideTime), 6) + " sec\n");
+        sb.append("\n");
+        sb.append("Minimum Wait Time: " + Utility.formatColumnString(Utility.nanoToRoundedSeconds(minWaitTime, 1), 6) + " sec (P...)\n");
+        sb.append("Minimum Ride Time: " + Utility.formatColumnString(Utility.nanoToRoundedSeconds(minRideTime, 1), 6) + " sec (P...)\n");
+        sb.append("\n");
+        sb.append("Maximum Wait Time: " + Utility.formatColumnString(Utility.nanoToRoundedSeconds(maxWaitTime, 1), 6) + " sec (P...)\n");
+        sb.append("Maximum Ride Time: " + Utility.formatColumnString(Utility.nanoToRoundedSeconds(maxRideTime, 1), 6) + " sec (P...)\n");
+        sb.append(Arrays.toString(waitTimes));
+        sb.append("\n");
+        sb.append(Arrays.toString(rideTimes));
+        sb.append("\n");
+
         return sb.toString();
     }
 

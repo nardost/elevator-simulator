@@ -35,7 +35,43 @@ class ElevatorController {
         return controlCenter;
     }
 
-    public void run() {
+    public void start() throws ElevatorSystemException {
+        //TODO: Move this to controller!!
+        /**
+         * controller.run();
+         * */
+        Building building = Building.getInstance();
+        //ElevatorController ec = ElevatorController.getInstance();
+        int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
+        Thread threads[] = new Thread[numberOfElevators];
+        for(int i = 1; i <= numberOfElevators; i++) {
+            Elevator e = ElevatorController.getInstance().getElevatorById(i);
+            threads[i - 1] = new Thread(() -> e.run());
+            threads[i - 1].setName("THREAD_ELEVATOR_" + i);
+        }
+        Thread buildingThread = new Thread(() -> building.run());
+        buildingThread.setName("THREAD_BUILDING");
+        //Thread controllerThread = new Thread(() -> this.run());
+        //controllerThread.setName("THREAD_CONTROLLER");
+
+        for(int i = 1; i <= numberOfElevators; i++) {
+            threads[i - 1].start();
+        }
+        buildingThread.start();
+        //controllerThread.start();
+
+        try {
+            for(int i = 1; i <= numberOfElevators; i++) {
+                threads[i - 1].join();
+            }
+            buildingThread.join();
+            //controllerThread.join();
+        } catch(InterruptedException ie) {
+            ie.printStackTrace();
+        }
+    }
+
+    public void run() throws ElevatorSystemException {
         controller.run();
     }
 
@@ -44,9 +80,9 @@ class ElevatorController {
     }
 
     void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
-        Elevator e = getElevatorById(elevatorId);
-        e.enterRider(personId, destinationFloor);
-        controller.executeElevatorRequest(elevatorId, destinationFloor, originFloor);
+        //Elevator e = getElevatorById(elevatorId);
+        //e.enterRider(personId, destinationFloor);
+        controller.executeElevatorRequest(elevatorId, personId, destinationFloor, originFloor);
 
     }
 
@@ -55,8 +91,9 @@ class ElevatorController {
     }
 
     void exitRider(int elevatorId, int floorNumber, int personId) throws ElevatorSystemException {
-        Elevator e = getElevatorById(elevatorId);
-        e.exitRider(personId, floorNumber);
+        //Elevator e = getElevatorById(elevatorId);
+        //e.exitRider(personId, floorNumber);
+        controller.exitRider(elevatorId, personId, floorNumber);
     }
 
     Elevator getElevatorById(int id) {

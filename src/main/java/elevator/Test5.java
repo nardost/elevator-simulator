@@ -13,7 +13,7 @@ public class Test5 {
             for (int i = 1; i <= numElev; i++) {
                 ElevatorDisplay.getInstance().addElevator(i, 1);
             }
-            Building.getInstance().generatePerson(3, 7);
+            //Building.getInstance().generatePerson(3, 7);
             SystemConfiguration.initializeSystemConfiguration();
             Building building = Building.getInstance();
             ElevatorController ec = ElevatorController.getInstance();
@@ -26,8 +26,8 @@ public class Test5 {
             }
             Thread buildingThread = new Thread(() -> building.run());
             buildingThread.setName("THREAD_BUILDING");
-            Thread controllerThread = new Thread(() -> ec.run());
-            controllerThread.setName("THREAD_CONTROLLER");
+            //Thread controllerThread = new Thread(() -> ec.run());
+            //controllerThread.setName("THREAD_CONTROLLER");
 
             for(int i = 1; i <= numberOfElevators; i++) {
                 threads[i - 1].start();

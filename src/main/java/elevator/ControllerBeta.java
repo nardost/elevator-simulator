@@ -14,15 +14,44 @@ class ControllerBeta implements Controller {
     ControllerBeta() throws ElevatorSystemException {
         try {
             final int NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
+            final int NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
             this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
+
+            this.elevators = new HashMap<>();
+            for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
+                Elevator e = new Elevator();
+                this.elevators.put(i, e);
+            }
         } catch (NumberFormatException nfe) {
             throw new ElevatorSystemException("Bad format in number of elevators. Check config file.");
         }
     }
 
     @Override
-    public void run() {
-        while(getFloorRequests().peek() != null) {
+    public void run() throws ElevatorSystemException {
+        Building building = Building.getInstance();
+        int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
+        Thread threads[] = new Thread[numberOfElevators];
+        for(int i = 1; i <= numberOfElevators; i++) {
+            Elevator e = getElevator(i);
+            threads[i - 1] = new Thread(() -> e.run());
+            threads[i - 1].setName("THREAD_ELEVATOR_" + i);
+        }
+        Thread buildingThread = new Thread(() -> building.run());
+        buildingThread.setName("THREAD_BUILDING");
+
+        for(int i = 1; i <= numberOfElevators; i++) {
+            threads[i - 1].start();
+        }
+        buildingThread.start();
+
+        try {
+            for(int i = 1; i <= numberOfElevators; i++) {
+                threads[i - 1].join();
+            }
+            buildingThread.join();
+        } catch(InterruptedException ie) {
+            ie.printStackTrace();
         }
     }
 
@@ -33,8 +62,9 @@ class ControllerBeta implements Controller {
 
 
     @Override
-    public void executeElevatorRequest(int elevatorId, int destinationFloor, int fromFloorNumber) throws ElevatorSystemException {
+    public void executeElevatorRequest(int elevatorId, int personId, int destinationFloor, int fromFloorNumber) throws ElevatorSystemException {
         Elevator e = getElevator(elevatorId);
+        e.enterRider(personId, destinationFloor);
         e.addNextStop(destinationFloor);
         EventLogger.print(
                 "Elevator " + e.getElevatorId() + " Rider Request made for Floor " + destinationFloor +
@@ -43,27 +73,11 @@ class ControllerBeta implements Controller {
 
     @Override
     public void executeFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
-        /**
-         * Load elevators in private Map. Making sure this gets done only on the first floor request.
-         * Cannot do this in constructor because ElevatorController is not fully constructed yet.
-         * This should be only temporary. Elevators should solely be owned by this controller.
-         * */
-        if(getElevators() == null) {
-            synchronized(ControllerBeta.class) {
-                if(getElevators() == null) {
-                    this.elevators = new HashMap<>();
-                    final int NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-                    for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
-                        Elevator e = ElevatorController.getInstance().getElevatorById(i);
-                        this.elevators.put(new Integer(i), e);
-                    }
-                }
-            }
-        }
+
         FloorRequest request = (FloorRequest) FloorRequestFlyweightFactory.getInstance()
                 .getFloorRequest(Utility.encodeFloorRequestKey(fromFloorNumber, direction));
         saveFloorRequest(request);
-        Elevator e = selectElevator(fromFloorNumber, direction);
+        Elevator e = selectElevator1(fromFloorNumber, direction);
         if(e != null) {
             removeFloorRequest(request);
             e.setDispatched(true);
@@ -75,13 +89,14 @@ class ControllerBeta implements Controller {
 
     @Override
     public void executeLocationUpdate(int elevatorId, int elevatorLocation, Direction nowGoingInDirection, Direction directionDispatchedFor) throws ElevatorSystemException {
-        Elevator e = getElevator(elevatorId);
-        if(e.peekNextStop() != null) {/*
-            EventLogger.print(
-                    "Elevator " + elevatorId + " moving from Floor " + elevatorLocation + " to Floor " + e.peekNextStop() +
-                            " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + e.printListOfRiderRequests() + "]");
-        */}
         announceLocationOfElevator(elevatorId, elevatorLocation, nowGoingInDirection, directionDispatchedFor);
+    }
+
+    @Override
+    public void exitRider(int elevatorId, int personId, int floorNumber) throws ElevatorSystemException {
+        Elevator e = getElevator(elevatorId);
+        e.exitRider(personId, floorNumber);
+
     }
 
     private Map<Integer, Elevator> getElevators() {
@@ -115,29 +130,25 @@ class ControllerBeta implements Controller {
         return Utility.listToString(list, "", ", ", "");
     }
 
-    private Elevator selectElevator(int floor, Direction direction) {
+    private Elevator selectElevator1(int floor, Direction direction) {
         serviceCount++;
         int selected = 1 + serviceCount % 4;
-        System.out.println("SELECTED " + selected);
         return getElevator(selected);
-        /**
-        Elevator elevators[] = new Elevator[NUMBER_OF_ELEVATORS];
-        for(int i = 0; i < NUMBER_OF_ELEVATORS; i++) {
-            Elevator e = ElevatorController.getInstance().getElevatorById(i + 1);
-            elevators[i] = e;
-        }
-        for(int i = 0; i < NUMBER_OF_ELEVATORS; i++) {
-            Elevator e = elevators[i];
+    }
+    private Elevator selectElevator(int floor, Direction direction) {
+        final int NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
+        for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
+            Elevator e = getElevator(i);
             if(e.getDirection() == Direction.IDLE) {
                 return e;
             }
-            if(e.getDirection() == Direction.UP && direction == Direction.UP && e.getLocation() < floor) {
+            if(e.getDirection() == Direction.UP && direction == Direction.UP && e.getLocation() <= floor) {
                 return e;
             }
-            if(e.getDirection() == Direction.DOWN && direction == Direction.DOWN && e.getLocation() > floor) {
+            if(e.getDirection() == Direction.DOWN && direction == Direction.DOWN && e.getLocation() >= floor) {
                 return e;
             }
         }
-        return null;*/
+        return null;//getElevator(1 + serviceCount % 4);
     }
 }

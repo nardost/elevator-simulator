@@ -62,14 +62,12 @@ class Elevator implements GenericElevator {
                     setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
                     move();
                     setDirection(Direction.IDLE);
-                    if(doorsOpen()) {
-                        closeDoors();
-                    }
-                } else {
-                   if(doorsOpen()) {
-                       closeDoors();
-                   }
                 }
+
+                if(doorsOpen()) {
+                    closeDoors();
+                }
+
                 Thread.sleep(500L);
                 elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
