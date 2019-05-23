@@ -1,6 +1,9 @@
 package elevator;
 
-import java.util.*;
+import java.util.AbstractQueue;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -9,12 +12,15 @@ class ControllerBeta implements Controller {
     private AbstractQueue<FloorRequest> floorRequestQueue;
     private Map<Integer, Elevator> elevators;
 
+    private final int NUMBER_OF_FLOORS;
+    private final int NUMBER_OF_ELEVATORS;
+
     private int serviceCount = 0;
 
     ControllerBeta() throws ElevatorSystemException {
         try {
-            final int NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
-            final int NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
+            NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
+            NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
             this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
 
             this.elevators = new HashMap<>();
@@ -30,9 +36,8 @@ class ControllerBeta implements Controller {
     @Override
     public void run() throws ElevatorSystemException {
         Building building = Building.getInstance();
-        int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-        Thread threads[] = new Thread[numberOfElevators];
-        for(int i = 1; i <= numberOfElevators; i++) {
+        Thread threads[] = new Thread[NUMBER_OF_ELEVATORS];
+        for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
             Elevator e = getElevator(i);
             threads[i - 1] = new Thread(() -> e.run());
             threads[i - 1].setName("THREAD_ELEVATOR_" + i);
@@ -40,13 +45,13 @@ class ControllerBeta implements Controller {
         Thread buildingThread = new Thread(() -> building.run());
         buildingThread.setName("THREAD_BUILDING");
 
-        for(int i = 1; i <= numberOfElevators; i++) {
+        for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
             threads[i - 1].start();
         }
         buildingThread.start();
 
         try {
-            for(int i = 1; i <= numberOfElevators; i++) {
+            for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
                 threads[i - 1].join();
             }
             buildingThread.join();
@@ -107,10 +112,10 @@ class ControllerBeta implements Controller {
         return getElevators().get(new Integer(id));
     }
 
-    AbstractQueue<FloorRequest> getFloorRequests() {
+    private AbstractQueue<FloorRequest> getFloorRequests() {
         return this.floorRequestQueue;
     }
-    void saveFloorRequest(FloorRequest floorRequest) {
+    private void saveFloorRequest(FloorRequest floorRequest) {
         AbstractQueue<FloorRequest> floorRequests = getFloorRequests();
         synchronized(floorRequests) {
             if(!floorRequests.contains(floorRequest)) {
@@ -119,13 +124,13 @@ class ControllerBeta implements Controller {
         }
     }
 
-    void removeFloorRequest(FloorRequest floorRequest) {
+    private void removeFloorRequest(FloorRequest floorRequest) {
         AbstractQueue<FloorRequest> floorRequests = getFloorRequests();
         synchronized(floorRequests) {
             floorRequests.remove(floorRequest);
         }
     }
-    String printListOfFloorRequests() {
+    private String printListOfFloorRequests() {
         List<FloorRequest> list = getFloorRequests().stream().collect(Collectors.toList());
         return Utility.listToString(list, "", ", ", "");
     }

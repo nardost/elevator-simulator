@@ -1,8 +1,5 @@
 package elevator;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author ntessema
  *
@@ -14,14 +11,11 @@ class ElevatorController {
 
     private Controller controller;
 
-    private List<Elevator> elevators = new ArrayList<>();
-
     private static ElevatorController controlCenter = null;
 
     private ElevatorController() throws ElevatorSystemException {
-        SystemConfiguration.initializeSystemConfiguration();//TODO: Important!!!
+        SystemConfiguration.initializeSystemConfiguration();
         setController(ControllerFactory.createController());
-        setElevators();
     }
 
     static ElevatorController getInstance() throws ElevatorSystemException {
@@ -35,43 +29,8 @@ class ElevatorController {
         return controlCenter;
     }
 
-    public void start() throws ElevatorSystemException {
-        //TODO: Move this to controller!!
-        /**
-         * controller.run();
-         * */
-        Building building = Building.getInstance();
-        //ElevatorController ec = ElevatorController.getInstance();
-        int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-        Thread threads[] = new Thread[numberOfElevators];
-        for(int i = 1; i <= numberOfElevators; i++) {
-            Elevator e = ElevatorController.getInstance().getElevatorById(i);
-            threads[i - 1] = new Thread(() -> e.run());
-            threads[i - 1].setName("THREAD_ELEVATOR_" + i);
-        }
-        Thread buildingThread = new Thread(() -> building.run());
-        buildingThread.setName("THREAD_BUILDING");
-        //Thread controllerThread = new Thread(() -> this.run());
-        //controllerThread.setName("THREAD_CONTROLLER");
 
-        for(int i = 1; i <= numberOfElevators; i++) {
-            threads[i - 1].start();
-        }
-        buildingThread.start();
-        //controllerThread.start();
-
-        try {
-            for(int i = 1; i <= numberOfElevators; i++) {
-                threads[i - 1].join();
-            }
-            buildingThread.join();
-            //controllerThread.join();
-        } catch(InterruptedException ie) {
-            ie.printStackTrace();
-        }
-    }
-
-    public void run() throws ElevatorSystemException {
+    void run() throws ElevatorSystemException {
         controller.run();
     }
 
@@ -80,8 +39,6 @@ class ElevatorController {
     }
 
     void receiveElevatorRequest(int elevatorId, int destinationFloor, int originFloor, int personId) throws ElevatorSystemException {
-        //Elevator e = getElevatorById(elevatorId);
-        //e.enterRider(personId, destinationFloor);
         controller.executeElevatorRequest(elevatorId, personId, destinationFloor, originFloor);
 
     }
@@ -91,49 +48,9 @@ class ElevatorController {
     }
 
     void exitRider(int elevatorId, int floorNumber, int personId) throws ElevatorSystemException {
-        //Elevator e = getElevatorById(elevatorId);
-        //e.exitRider(personId, floorNumber);
         controller.exitRider(elevatorId, personId, floorNumber);
     }
-
-    Elevator getElevatorById(int id) {
-        for(Elevator e : getElevators()) {
-            if(id == e.getElevatorId()) {
-                return e;
-            }
-        }
-        return null;
-    }
-
     private void setController(Controller controller) {
         this.controller = controller;
-    }
-
-    private void setElevators() throws ElevatorSystemException {
-        try {
-            this.elevators = new ArrayList<>();
-            int numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-            for (int i = 1; i <= numberOfElevators; i++) {
-                Elevator e = new Elevator();
-                addElevator(e);
-            }
-        } catch(NumberFormatException nfe) {
-            throw new ElevatorSystemException("Wrong configuration value for number of elevators.");
-        }
-    }
-    private void addElevator(Elevator elevator) throws ElevatorSystemException {
-        try {
-            getElevators().add(elevator);
-        } catch(NullPointerException npe) {
-            throw new ElevatorSystemException("INTERNAL ERROR: elevators/observers list is null");
-        }
-    }
-
-    private List<Elevator> getElevators() {
-        return elevators;
-    }
-
-    String printListOfFloorRequests() {
-        return "";
     }
 }

@@ -112,7 +112,7 @@ class Elevator implements GenericElevator {
 
         EventLogger.print(
                 "Elevator " + elevatorId + " moving from Floor " + getLocation() + " to Floor " + peekNextStop() +
-                        " [Current Floor Requests: " + ElevatorController.getInstance().printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
+                        " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
         long floorTime = 1000L * (long) getSpeed();
         int floor = pollNextStop();
         if(doorsOpen()) {
@@ -330,30 +330,31 @@ class Elevator implements GenericElevator {
     }
 
     void setDispatchedForFloor(int dispatchedForFloor) throws ElevatorSystemException {
-        int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
-        if(dispatchedForFloor < 0 || dispatchedForFloor > numberOfFloors) {
+        int numberOfFloors = Building.getInstance().getNumberOfFloors();
+        if(dispatchedForFloor < 1 || dispatchedForFloor > numberOfFloors) {
             throw new ElevatorSystemException("Floors between 1 and " + numberOfFloors);
         }
         this.dispatchedForFloor = dispatchedForFloor;
     }
 
-    void addNextStop(int next) {
+    void addNextStop(int next) throws ElevatorSystemException {
+        if(next < 1 || next > Building.getInstance().getNumberOfFloors()) {
+            throw new ElevatorSystemException("Floors between 1 and " + Building.getInstance().getNumberOfFloors());
+        }
+
         if(next < getLocation()) {
             if(!getReverseNextFloorQueue().contains(next)) {
                 getReverseNextFloorQueue().offer(next);
-
-                System.out.println("saved in reverse of " + getElevatorId());
             }
             return;
         }
         if(!getNaturalNextFloorQueue().contains(next)) {
             getNaturalNextFloorQueue().offer(next);
-            System.out.println("saved in natural of " + getElevatorId());
         }
 
     }
 
-    Integer peekNextStop() {
+    private Integer peekNextStop() {
         if(getDirection() == Direction.IDLE) {
             if(getNaturalNextFloorQueue().peek() != null) {
                 return getNaturalNextFloorQueue().peek();
@@ -365,7 +366,7 @@ class Elevator implements GenericElevator {
         }
         return null;
     }
-    Integer pollNextStop() {
+    private Integer pollNextStop() {
         if(getDirection() == Direction.IDLE) {
             if(getNaturalNextFloorQueue().peek() != null) {
                 return getNaturalNextFloorQueue().poll();
@@ -377,7 +378,7 @@ class Elevator implements GenericElevator {
         }
         return null;
     }
-    boolean nextStop() {
+    private boolean nextStop() {
         if(getReverseNextFloorQueue().peek() == null && getNaturalNextFloorQueue().peek() == null) {
             return false;
         }
@@ -391,5 +392,7 @@ class Elevator implements GenericElevator {
     String printListOfRiders() {
         return Utility.listToString(getRiders(), "P", ", ", "");
     }
-
+    String printListOfFloorRequests() {
+        return "";
+    }
 }
