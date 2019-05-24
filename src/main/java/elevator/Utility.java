@@ -23,10 +23,7 @@ public class Utility {
         throw new ElevatorSystemException("Invalid FloorRequest key " + key);
     }
     static String encodeFloorRequestKey(int floor, Direction direction) throws ElevatorSystemException {
-        int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
-        if(floor < 1 || floor > numberOfFloors) {
-            throw new ElevatorSystemException("Cannot encode key for invalid floor number: " + floor);
-        }
+        Validator.validateFloorNumber(floor);
         StringBuilder sb = new StringBuilder(Integer.toString(floor));
         sb.append((direction == Direction.UP) ? "U" : "D");
         return sb.toString();
@@ -36,14 +33,14 @@ public class Utility {
         String floorPart = key.substring(0, key.length() - 1);
         String directionPart = key.substring(key.length() - 1);
         try {
-            int floor = Integer.parseInt(floorPart);
             SystemConfiguration.initializeSystemConfiguration();
-            int numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
-            if(floor < 1 || floor > numberOfFloors) {
+            final int NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
+            int floor = Integer.parseInt(floorPart);
+            if(floor < 1 || floor > NUMBER_OF_FLOORS) {
                 return false;
             }
             if(directionPart.equals("U") || directionPart.equals("D")) {
-                if((floor == 1 && directionPart.equals("D") || (floor == numberOfFloors && directionPart.equals("U")))) {
+                if((floor == 1 && directionPart.equals("D") || (floor == NUMBER_OF_FLOORS && directionPart.equals("U")))) {
                     return false;
                 }
                 return true;
@@ -56,7 +53,12 @@ public class Utility {
         return false;
     }
 
-    public static String listToString(List list, String prefix, String separator, String suffix) {
+    public static String listToString(List list, String prefix, String separator, String suffix) throws ElevatorSystemException {
+        try {
+            Validator.validateNotNull(list);
+        } catch (ElevatorSystemException ese) {
+            throw new ElevatorSystemException("cannot stringify null list.");
+        }
         StringBuilder sb = new StringBuilder();
         list.forEach(x -> {
             sb.append(prefix);
@@ -74,7 +76,9 @@ public class Utility {
         return sb.toString();
     }
 
-    public static Direction evaluateDirection(int from, int to) {
+    public static Direction evaluateDirection(int from, int to) throws ElevatorSystemException {
+        Validator.validateFloorNumber(from);
+        Validator.validateFloorNumber(to);
         if(from == to) {
             return Direction.IDLE;
         }
@@ -82,6 +86,12 @@ public class Utility {
     }
 
     public static String formatColumnString(String str, int cols) {
+        try {
+            //any exception must be caught here because method is used in a lambda expression.
+            Validator.validateGreaterThanZero(cols);
+        } catch(ElevatorSystemException ese) {
+            System.out.printf(ese.getMessage());
+        }
         StringBuilder sb = new StringBuilder();
         if(str.length() < cols) {
             for(int i = 0; i < cols - str.length(); i++) {
@@ -120,7 +130,7 @@ public class Utility {
         return df.format(new Long(TimeUnit.MILLISECONDS.convert(nano, TimeUnit.NANOSECONDS)).doubleValue() / 1000.0);
     }
 
-    public static String generateReport(List<Person> list) {
+    public static String generateReport(List<Person> list) throws ElevatorSystemException {
         final int TOTAL_NUMBER_OF_PEOPLE = list.size();
         long waitTimes[] = new long[TOTAL_NUMBER_OF_PEOPLE];
         long minWaitTime;
@@ -152,7 +162,7 @@ public class Utility {
             String id = "P" + p.getId();
             String origin = Integer.toString(p.getOriginFloor());
             String destination = Integer.toString(p.getDestinationFloor());
-            String direction = Utility.evaluateDirection(p.getOriginFloor(), p.getDestinationFloor()).toString();
+            String direction = ((p.getOriginFloor() < p.getDestinationFloor()) ? Direction.UP : Direction.DOWN).toString();
             String waitTimeStr = Utility.nanoToRoundedSeconds(waitTime, 1);
             String rideTimeStr = Utility.nanoToRoundedSeconds(rideTime, 1);
             String totalTimeStr = Utility.nanoToRoundedSeconds(totalTime, 1);

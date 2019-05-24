@@ -1,11 +1,14 @@
 package elevator;
 
+import java.util.Objects;
+
 public class FloorRequest implements FloorRequestFlyweight {
 
     private int floorOfOrigin;
     private Direction directionRequested;
 
     FloorRequest(int floorOfOrigin, Direction directionRequested) throws ElevatorSystemException {
+        Validator.validateFloorNumber(floorOfOrigin);
         setFloorOfOrigin(floorOfOrigin);
         setDirectionRequested(directionRequested);
     }
@@ -23,13 +26,15 @@ public class FloorRequest implements FloorRequestFlyweight {
     }
 
     @Override
-    public void relayFloorRequest(int personId, long time) throws ElevatorSystemException {
+    public int hashCode() {
+        return Objects.hash(getFloorOfOrigin(), getDirectionRequested().toString());
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(Integer.toString(getFloorOfOrigin()));
-        sb.append(directionRequested.toString());
+        sb.append(":");
+        sb.append(getDirectionRequested().toString());
         return sb.toString();
     }
 
@@ -38,9 +43,7 @@ public class FloorRequest implements FloorRequestFlyweight {
     }
 
     private void setFloorOfOrigin(int floorOfOrigin) throws ElevatorSystemException {
-        if(floorOfOrigin > Building.getInstance().getNumberOfFloors()) {
-            throw new ElevatorSystemException("Floor should be between 1 and " + Building.getInstance().getNumberOfFloors());
-        }
+        Validator.validateFloorNumber(floorOfOrigin);
         this.floorOfOrigin = floorOfOrigin;
     }
 

@@ -1,7 +1,6 @@
 package elevator;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -17,8 +16,6 @@ import java.util.stream.Collectors;
  * Delegates to Controller
  */
 public class Building implements Observable {
-
-    public static int TEST;//TODO: absolutely for the tests only!!!
 
     private int numberOfFloors;
     private int numberOfElevators;
@@ -61,7 +58,10 @@ public class Building implements Observable {
     @Override
     public void addObserver(Observer o) throws ElevatorSystemException {
         try {
+            Validator.validateNotNull(o);
             getObservers().add(o);
+        } catch(ElevatorSystemException ese) {
+            throw new ElevatorSystemException("Null not allowed in observers list.");
         } catch(NullPointerException npe) {
             throw new ElevatorSystemException("ERROR: The observers list is null.");
         }
@@ -76,6 +76,8 @@ public class Building implements Observable {
          * vastly outnumber mutations, and is useful when you cannot or don't want to synchronize traversals,
          * yet need to preclude interference among concurrent threads.
          * */
+        Validator.validateElevatorNumber(elevatorId);
+        Validator.validateFloorNumber(elevatorLocation);
         Iterator iterator = getObservers().iterator();
         while (iterator.hasNext()) {
             Observer rider = (Observer) iterator.next();
@@ -112,16 +114,18 @@ public class Building implements Observable {
         return observers;
     }
 
-    public int getNumberOfFloors() {
+    int getNumberOfFloors() {
         return this.numberOfFloors;
     }
 
-    public int getNumberOfElevators() {
+    int getNumberOfElevators() {
         return this.numberOfElevators;
     }
 
 
-    public void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
+    void generatePerson(int originFloorNumber, int destinationFloorNumber) throws ElevatorSystemException  {
+        Validator.validateFloorNumber(originFloorNumber);
+        Validator.validateFloorNumber(destinationFloorNumber);
         Person person = new Person(originFloorNumber, destinationFloorNumber);
         Direction desiredDirection = (originFloorNumber < destinationFloorNumber) ? Direction.UP : Direction.DOWN;
         addObserver(person);
@@ -155,7 +159,7 @@ public class Building implements Observable {
         }
     }
 
-    public String generateReport() {
+    public String generateReport() throws ElevatorSystemException {
         List<Person> list = getObservers().stream().map(observer -> (Person) observer).collect(Collectors.toList());
         return Utility.generateReport(list);
     }

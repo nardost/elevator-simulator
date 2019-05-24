@@ -17,6 +17,8 @@ class Person implements Rider, Observer {
     private static  int instanceCounter = 0;
 
     public Person(int origin, int destination) throws ElevatorSystemException {
+        Validator.validateFloorNumber(origin);
+        Validator.validateFloorNumber(destination);
         setId(++instanceCounter);
         setOriginFloor(origin);
         setDestinationFloor(destination);
@@ -77,7 +79,8 @@ class Person implements Rider, Observer {
     }
 
     public void decideToBoardOrIgnoreOrExitElevator(int elevatorId, int floorNumber, Direction directionOfElevator, Direction directionDispatchedFor) throws ElevatorSystemException {
-
+        Validator.validateElevatorNumber(elevatorId);
+        Validator.validateFloorNumber(floorNumber);
         int originFloor = getOriginFloor();
         int destinationFloor = getDestinationFloor();
         Direction intendedDirection = (originFloor < destinationFloor) ? Direction.UP : Direction.DOWN;
@@ -101,31 +104,31 @@ class Person implements Rider, Observer {
         return id;
     }
 
-    public RiderStatus getStatus() {
+    RiderStatus getStatus() {
         return status;
     }
 
-    public int getOriginFloor() {
+    int getOriginFloor() {
         return originFloor;
     }
 
-    public int getDestinationFloor() {
+    int getDestinationFloor() {
         return destinationFloor;
     }
 
-    public long getCreatedTime() {
+    long getCreatedTime() {
         return createdTime;
     }
 
-    public long getBoardingTime() {
+    long getBoardingTime() {
         return boardingTime;
     }
 
-    public long getExitTime() {
+    long getExitTime() {
         return exitTime;
     }
 
-    public int getElevatorBoardedOn() {
+    int getElevatorBoardedOn() {
         return elevatorBoardedOn;
     }
 
@@ -133,7 +136,7 @@ class Person implements Rider, Observer {
         this.id = id;
     }
 
-    public void setStatus(RiderStatus status) {
+    void setStatus(RiderStatus status) {
         this.status = status;
     }
 
@@ -141,10 +144,7 @@ class Person implements Rider, Observer {
         this.originFloor = origin;
     }
 
-    private void setDestinationFloor(int destinationFloor) throws ElevatorSystemException {
-        if(destinationFloor > Building.getInstance().getNumberOfFloors()) {
-            throw new ElevatorSystemException("Floor should be between 1 and " + Building.getInstance().getNumberOfFloors());
-        }
+    private void setDestinationFloor(int destinationFloor) {
         this.destinationFloor = destinationFloor;
     }
 
@@ -162,10 +162,7 @@ class Person implements Rider, Observer {
     }
 
     private void setElevatorBoardedOn(int elevatorBoardedOn) throws ElevatorSystemException {
-        int numberOfElevatorsInBuilding = Building.getInstance().getNumberOfElevators();
-        if(elevatorBoardedOn < 1 || elevatorBoardedOn > numberOfElevatorsInBuilding) {
-            throw new ElevatorSystemException("Elevator should be between 1 and " + numberOfElevatorsInBuilding);
-        }
+        Validator.validateElevatorNumber(elevatorBoardedOn);
         this.elevatorBoardedOn = elevatorBoardedOn;
     }
 }

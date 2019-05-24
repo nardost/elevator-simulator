@@ -62,29 +62,33 @@ class ControllerBeta implements Controller {
 
     @Override
     public void announceLocationOfElevator(int elevatorId, int elevatorLocation, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
+        Validator.validateFloorNumber(elevatorLocation);
+        Validator.validateElevatorNumber(elevatorId);
         Building.getInstance().notifyObservers(elevatorId, elevatorLocation, direction, directionDispatchedFor);
     }
 
 
     @Override
     public void executeElevatorRequest(int elevatorId, int personId, int destinationFloor, int fromFloorNumber) throws ElevatorSystemException {
+        Validator.validateElevatorNumber(elevatorId);
+        Validator.validateFloorNumber(destinationFloor);
+        Validator.validateFloorNumber(fromFloorNumber);
+        Validator.validateGreaterThanZero(personId);
         Elevator e = getElevator(elevatorId);
         e.enterRider(personId, destinationFloor);
         e.addNextStop(destinationFloor);
-        EventLogger.print(
-                "Elevator " + e.getElevatorId() + " Rider Request made for Floor " + destinationFloor +
-                        " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests " + e.printListOfRiderRequests() + "]");
     }
 
     @Override
     public void executeFloorRequest(int fromFloorNumber, Direction direction) throws ElevatorSystemException {
-
+        Validator.validateFloorNumber(fromFloorNumber);
         FloorRequest request = (FloorRequest) FloorRequestFlyweightFactory.getInstance()
                 .getFloorRequest(Utility.encodeFloorRequestKey(fromFloorNumber, direction));
         saveFloorRequest(request);
         Elevator e = selectElevator1(fromFloorNumber, direction);
         if(e != null) {
             removeFloorRequest(request);
+            e.addFloorRequest(fromFloorNumber);
             e.setDispatched(true);
             e.setDispatchedToServeDirection(direction);
             e.setDispatchedForFloor(fromFloorNumber);
@@ -94,11 +98,16 @@ class ControllerBeta implements Controller {
 
     @Override
     public void executeLocationUpdate(int elevatorId, int elevatorLocation, Direction nowGoingInDirection, Direction directionDispatchedFor) throws ElevatorSystemException {
+        Validator.validateElevatorNumber(elevatorId);
+        Validator.validateFloorNumber(elevatorLocation);
         announceLocationOfElevator(elevatorId, elevatorLocation, nowGoingInDirection, directionDispatchedFor);
     }
 
     @Override
     public void exitRider(int elevatorId, int personId, int floorNumber) throws ElevatorSystemException {
+        Validator.validateElevatorNumber(elevatorId);
+        Validator.validateGreaterThanZero(personId);
+        Validator.validateFloorNumber(floorNumber);
         Elevator e = getElevator(elevatorId);
         e.exitRider(personId, floorNumber);
 
@@ -130,7 +139,7 @@ class ControllerBeta implements Controller {
             floorRequests.remove(floorRequest);
         }
     }
-    private String printListOfFloorRequests() {
+    private String printListOfFloorRequests() throws ElevatorSystemException {
         List<FloorRequest> list = getFloorRequests().stream().collect(Collectors.toList());
         return Utility.listToString(list, "", ", ", "");
     }

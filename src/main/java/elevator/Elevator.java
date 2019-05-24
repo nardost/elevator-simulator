@@ -24,6 +24,7 @@ class Elevator implements GenericElevator {
     private static int defaultFloor;
 
     private List<Integer> riderRequests = new ArrayList<>();
+    private List<Integer> floorRequests = new ArrayList<>();
     private List<Integer> riders = new ArrayList<>();
 
     private PriorityBlockingQueue<Integer> nextFloorQueueNatural = new PriorityBlockingQueue<>(20, Comparator.naturalOrder());
@@ -189,30 +190,60 @@ class Elevator implements GenericElevator {
     }
 
     void enterRider(int personId, int destinationFloor) throws ElevatorSystemException {
+        Validator.validateGreaterThanZero(personId);
+        Validator.validateFloorNumber(destinationFloor);
         addRiderRequest(destinationFloor);
         addRider(personId);
         EventLogger.print("Person P" + personId + " has entered Elevator " + getElevatorId() + " [Riders: " + printListOfRiders() + "]");
 
     }
     void exitRider(int personId, int floorNumber) throws ElevatorSystemException {
+        Validator.validateGreaterThanZero(personId);
+        Validator.validateFloorNumber(floorNumber);
         removeRiderRequest(floorNumber);
         removeRider(personId);
         EventLogger.print("Person P" + personId + " has left Elevator " + getElevatorId() + " [Riders: " + printListOfRiders() + "]");
     }
 
-    void addRiderRequest(int destinationFloor) {
-        if(!getRiderRequests().contains(destinationFloor)) {
-            getRiderRequests().add(destinationFloor);
+    private void addRiderRequest(int destinationFloor) throws ElevatorSystemException {
+        Validator.validateFloorNumber(destinationFloor);
+        Integer o = new Integer(destinationFloor);
+        if(!getRiderRequests().contains(o)) {
+            getRiderRequests().add(o);
+            EventLogger.print(
+                    "Elevator " + getElevatorId() + " Rider Request made for Floor " + destinationFloor +
+                    " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
         }
     }
-    void removeRiderRequest(int floorNumber) {
+    private void removeRiderRequest(int floorNumber) throws ElevatorSystemException {
+        Validator.validateFloorNumber(floorNumber);
         Integer o = new Integer(floorNumber);
         if(getRiderRequests().contains(o)) {
             getRiderRequests().remove(o);
         }
     }
 
+    void addFloorRequest(int destinationFloor) throws ElevatorSystemException {
+        Validator.validateFloorNumber(destinationFloor);
+        Integer o = new Integer(destinationFloor);
+        if(!getFloorRequests().contains(o)) {
+            getFloorRequests().add(o);
+        }
+        EventLogger.print(
+                "Elevator " + getElevatorId() + " Floor Request made for Floor " + destinationFloor +
+                " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
+    }
+
+    private void removeFloorRequest(int floorNumber) throws ElevatorSystemException {
+        Validator.validateFloorNumber(floorNumber);
+        Integer o = new Integer(floorNumber);
+        if(getFloorRequests().contains(o)) {
+            getFloorRequests().remove(o);
+        }
+    }
+
     void addRider(int personId) throws ElevatorSystemException {
+        Validator.validateGreaterThanZero(personId);
         if(!getRiders().contains(personId)) {
             int maxCapacity = Integer.parseInt(SystemConfiguration.getConfiguration("elevatorCapacity"));
             int numberOfRiders = getNumberOfRiders();
@@ -222,7 +253,8 @@ class Elevator implements GenericElevator {
             getRiders().add(personId);
         }
     }
-    void removeRider(int personId) {
+    void removeRider(int personId) throws ElevatorSystemException {
+        Validator.validateGreaterThanZero(personId);
         Integer o = new Integer(personId);
         if(getRiders().contains(o)) {
             getRiders().remove(o);
@@ -235,6 +267,10 @@ class Elevator implements GenericElevator {
 
     private List<Integer> getRiderRequests() {
         return this.riderRequests;
+    }
+
+    private List<Integer> getFloorRequests() {
+        return this.floorRequests;
     }
 
     int getElevatorId() {
@@ -280,9 +316,7 @@ class Elevator implements GenericElevator {
 
     void setLocation(int location) throws ElevatorSystemException {
         //NOTE: I used Building.getInstance().getNumberOfFloors() and got stuck for hours.
-        if(location < 1 || location > Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"))) {
-            throw new ElevatorSystemException("Floors can only be 1 to " + Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors")));
-        }
+        Validator.validateFloorNumber(location);
         this.location = location;
     }
 
@@ -318,7 +352,7 @@ class Elevator implements GenericElevator {
     }
 
     int getDispatchedForFloor() {
-        return dispatchedForFloor;
+        return this.dispatchedForFloor;
     }
 
     Direction getDispatchedToServeDirection() {
@@ -330,18 +364,12 @@ class Elevator implements GenericElevator {
     }
 
     void setDispatchedForFloor(int dispatchedForFloor) throws ElevatorSystemException {
-        int numberOfFloors = Building.getInstance().getNumberOfFloors();
-        if(dispatchedForFloor < 1 || dispatchedForFloor > numberOfFloors) {
-            throw new ElevatorSystemException("Floors between 1 and " + numberOfFloors);
-        }
+        Validator.validateFloorNumber(dispatchedForFloor);
         this.dispatchedForFloor = dispatchedForFloor;
     }
 
     void addNextStop(int next) throws ElevatorSystemException {
-        if(next < 1 || next > Building.getInstance().getNumberOfFloors()) {
-            throw new ElevatorSystemException("Floors between 1 and " + Building.getInstance().getNumberOfFloors());
-        }
-
+        Validator.validateFloorNumber(next);
         if(next < getLocation()) {
             if(!getReverseNextFloorQueue().contains(next)) {
                 getReverseNextFloorQueue().offer(next);
@@ -366,10 +394,17 @@ class Elevator implements GenericElevator {
         }
         return null;
     }
-    private Integer pollNextStop() {
+    private Integer pollNextStop() throws ElevatorSystemException {
         if(getDirection() == Direction.IDLE) {
             if(getNaturalNextFloorQueue().peek() != null) {
-                return getNaturalNextFloorQueue().poll();
+                int next = getNaturalNextFloorQueue().poll();
+                if(getFloorRequests().contains(new Integer(next))) {
+                    removeFloorRequest(new Integer(next));
+                }
+                if(getRiderRequests().contains(next)) {
+                    removeRiderRequest(next);
+                }
+                return next;
             }
             return getReverseNextFloorQueue().poll();
         }
@@ -385,14 +420,14 @@ class Elevator implements GenericElevator {
         return true;
     }
 
-    String printListOfRiderRequests() {
+    String printListOfRiderRequests() throws ElevatorSystemException {
         return Utility.listToString(getRiderRequests(), "", ", ", "");
     }
 
-    String printListOfRiders() {
+    String printListOfRiders() throws ElevatorSystemException {
         return Utility.listToString(getRiders(), "P", ", ", "");
     }
-    String printListOfFloorRequests() {
-        return "";
+    String printListOfFloorRequests() throws ElevatorSystemException {
+        return Utility.listToString(getFloorRequests(), "", ", ", "");
     }
 }
