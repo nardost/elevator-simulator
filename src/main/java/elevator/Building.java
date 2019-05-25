@@ -137,18 +137,19 @@ public class Building implements Observable {
         try {
             Random random = new Random(97);
             int numberOfFloors = getNumberOfFloors();
-            long elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
             final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
-            while (elapsedSeconds < SIMULATION_DURATION * 1000L) {
+            while (elapsedSeconds < SIMULATION_DURATION) {
                 int origin = 1 + random.nextInt(numberOfFloors);
                 int destination = 1 + random.nextInt(numberOfFloors);
-                if(origin == destination) {
-                    continue;
+                while(origin == destination) {
+                    destination = 1 + random.nextInt(numberOfFloors);
+                    System.out.println("$*$(&$$*$&*($&*$&*$*$)(*&_#_&$&$&$&*$&$$_&(*$&&)(_&(");
                 }
                 generatePerson(origin, destination);
                 Thread.sleep(CREATION_RATE * 1000L);
-                elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+                elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
             EventLogger.print("Done with rider generation.");
         } catch(ElevatorSystemException ese) {

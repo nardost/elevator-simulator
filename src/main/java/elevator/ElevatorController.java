@@ -68,7 +68,7 @@ class ElevatorController {
         }
         this.controller = controller;
     }
-    boolean moreFloorRequests() {
-        return controller.moreFloorRequests();
+    String unhandledFloorRequests() throws ElevatorSystemException {
+        return controller.unhandledFloorRequests();
     }
 }

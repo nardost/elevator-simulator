@@ -2,10 +2,7 @@ package elevator;
 
 import gui.ElevatorDisplay;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -20,11 +17,13 @@ class Elevator implements GenericElevator {
     private boolean dispatched;
     private int dispatchedForFloor; //U-turn point. Currently unused.
     private Direction dispatchedToServeDirection;
+    private boolean servingARiderRequest;
+    private boolean servingAFloorRequest;
     private boolean doorsOpen;
     private static int defaultFloor;
 
     private List<Integer> riderRequests = new ArrayList<>();
-    private List<Integer> floorRequests = new ArrayList<>();
+    private Map<Integer, Direction> floorRequests = new HashMap<>();
     private List<Integer> riders = new ArrayList<>();
 
     private PriorityBlockingQueue<Integer> nextFloorQueueNatural = new PriorityBlockingQueue<>(20, Comparator.naturalOrder());
@@ -50,7 +49,7 @@ class Elevator implements GenericElevator {
             long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
             final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
-            while (elapsedSeconds < SIMULATION_DURATION * 5L) {
+            while (elapsedSeconds < SIMULATION_DURATION * 4L) {
 
                 if (nextStop()) {
                     move();
@@ -117,6 +116,15 @@ class Elevator implements GenericElevator {
                         " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
         long floorTime = 1000L * (long) getSpeed();
         int floor = pollNextStop();
+        if(getRiderRequests().contains(new Integer(floor))) {
+            setServingARiderRequest(true);
+        }
+        if(getFloorRequests().containsKey(new Integer(floor))) {
+            setServingAFloorRequest(true);
+            setDispatchedForFloor(floor);
+
+            //setDispatchedToServeDirection();
+        }
         if(doorsOpen()) {
             closeDoors();
         }
@@ -141,7 +149,7 @@ class Elevator implements GenericElevator {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
                 setLocation(i);
-                if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().contains(new Integer(getLocation()))) {
+                if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().containsKey(new Integer(getLocation()))) {
                     markFloorServed(i);
                     openDoors();
                     ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), UP);
@@ -162,7 +170,7 @@ class Elevator implements GenericElevator {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
                 setLocation(i);
-                if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().contains(new Integer(getLocation()))) {
+                if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().containsKey(new Integer(getLocation()))) {
                     markFloorServed(i);
                     openDoors();
                     ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
@@ -204,7 +212,6 @@ class Elevator implements GenericElevator {
     void enterRider(int personId, int destinationFloor) throws ElevatorSystemException {
         Validator.validateGreaterThanZero(personId);
         Validator.validateFloorNumber(destinationFloor);
-        //addRiderRequest(destinationFloor);
         addRider(personId);
         gui.ElevatorDisplay.Direction dir = (getDirection() == Direction.UP) ? UP : ((getDirection() == Direction.DOWN) ? DOWN : IDLE);
         ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), dir);
@@ -239,11 +246,11 @@ class Elevator implements GenericElevator {
         }
     }
 
-    void addFloorRequest(int destinationFloor) throws ElevatorSystemException {
+    void addFloorRequest(int destinationFloor, Direction direction) throws ElevatorSystemException {
         Validator.validateFloorNumber(destinationFloor);
         Integer o = new Integer(destinationFloor);
-        if(!getFloorRequests().contains(o)) {
-            getFloorRequests().add(o);
+        if(!getFloorRequests().containsKey(o)) {
+            getFloorRequests().put(o, direction);
             addNextStop(destinationFloor);
         }
         EventLogger.print(
@@ -254,7 +261,7 @@ class Elevator implements GenericElevator {
     private void removeFloorRequest(int floorNumber) throws ElevatorSystemException {
         Validator.validateFloorNumber(floorNumber);
         Integer o = new Integer(floorNumber);
-        if(getFloorRequests().contains(o)) {
+        if(getFloorRequests().containsKey(o)) {
             getFloorRequests().remove(o);
         }
     }
@@ -286,7 +293,7 @@ class Elevator implements GenericElevator {
         return this.riderRequests;
     }
 
-    private List<Integer> getFloorRequests() {
+    private Map<Integer, Direction> getFloorRequests() {
         return this.floorRequests;
     }
 
@@ -384,6 +391,22 @@ class Elevator implements GenericElevator {
         this.dispatchedForFloor = dispatchedForFloor;
     }
 
+    boolean isServingARiderRequest() {
+        return servingARiderRequest;
+    }
+
+    private void setServingARiderRequest(boolean servingARiderRequest) {
+        this.servingARiderRequest = servingARiderRequest;
+    }
+
+    boolean isServingAFloorRequest() {
+        return servingAFloorRequest;
+    }
+
+    private void setServingAFloorRequest(boolean servingAFloorRequest) {
+        this.servingAFloorRequest = servingAFloorRequest;
+    }
+
     void addNextStop(int next) throws ElevatorSystemException {
         Validator.validateFloorNumber(next);
         if(!nextStop()) {
@@ -437,24 +460,6 @@ class Elevator implements GenericElevator {
             }
         }
         throw new ElevatorSystemException("no next stop for idle elevator.");
-        /*
-        if(getDirection() == Direction.IDLE) {
-            if(getNaturalNextFloorQueue().peek() != null) {
-                int next = getNaturalNextFloorQueue().poll();
-                if(getFloorRequests().contains(new Integer(next))) {
-                    removeFloorRequest(new Integer(next));
-                }
-                if(getRiderRequests().contains(next)) {
-                    removeRiderRequest(next);
-                }
-                return next;
-            }
-            return getReverseNextFloorQueue().poll();
-        }
-        if(getNextFloorQueue().peek() != null) {
-            return getNextFloorQueue().poll();
-        }*/
-        //return null;
     }
     boolean nextStop() {
         if(getReverseNextFloorQueue().peek() == null && getNaturalNextFloorQueue().peek() == null) {
@@ -464,11 +469,13 @@ class Elevator implements GenericElevator {
     }
 
     private void markFloorServed(int floor) throws ElevatorSystemException {
-        if(getFloorRequests().contains(new Integer(floor))) {
+        if(getFloorRequests().containsKey(new Integer(floor))) {
             removeFloorRequest(new Integer(floor));
+            setServingAFloorRequest(false);
         }
         if(getRiderRequests().contains(floor)) {
             removeRiderRequest(floor);
+            setServingARiderRequest(false);
         }
     }
 
@@ -480,6 +487,6 @@ class Elevator implements GenericElevator {
         return Utility.listToString(getRiders(), "P", ", ", "");
     }
     String printListOfFloorRequests() throws ElevatorSystemException {
-        return Utility.listToString(getFloorRequests(), "", ", ", "");
+        return Utility.listToString(new ArrayList(getFloorRequests().keySet()), "", ", ", "");
     }
 }

@@ -10,5 +10,5 @@ public interface Controller {
     void executeLocationUpdate(int elevatorId, int elevatorLocation, Direction nowGoingInDirection, Direction directionDispatchedFor) throws ElevatorSystemException;
     void announceLocationOfElevator(int elevatorId, int elevatorLocation, Direction elevatorServingDirection, Direction directionDispatchedFor) throws ElevatorSystemException;
     void exitRider(int elevatorId, int personId, int intFloorNumber) throws ElevatorSystemException;
-    boolean moreFloorRequests();
+    String unhandledFloorRequests() throws ElevatorSystemException;
 }
