@@ -1,9 +1,6 @@
 package elevator;
 
-import java.util.AbstractQueue;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -76,7 +73,7 @@ class ControllerBeta implements Controller {
         Validator.validateGreaterThanZero(personId);
         Elevator e = getElevator(elevatorId);
         e.enterRider(personId, destinationFloor);
-        e.addNextStop(destinationFloor);
+        e.addRiderRequest(destinationFloor);
     }
 
     @Override
@@ -87,12 +84,10 @@ class ControllerBeta implements Controller {
         saveFloorRequest(request);
         Elevator e = selectElevator1(fromFloorNumber, direction);
         if(e != null) {
-            removeFloorRequest(request);
             e.addFloorRequest(fromFloorNumber);
             e.setDispatched(true);
             e.setDispatchedToServeDirection(direction);
             e.setDispatchedForFloor(fromFloorNumber);
-            e.addNextStop(fromFloorNumber);
         }
     }
 
@@ -163,6 +158,16 @@ class ControllerBeta implements Controller {
                 return e;
             }
         }
-        return null;//getElevator(1 + serviceCount % 4);
+
+        Random random = new Random(100);
+        return getElevator(1 + random.nextInt(NUMBER_OF_ELEVATORS));
+    }
+
+    @Override
+    public boolean moreFloorRequests() {
+        if(getFloorRequests().isEmpty()) {
+            return false;
+        }
+        return true;
     }
 }

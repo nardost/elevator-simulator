@@ -49,29 +49,30 @@ class Elevator implements GenericElevator {
         try {
             long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
+            final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
             while (elapsedSeconds < SIMULATION_DURATION * 5L) {
 
                 if (nextStop()) {
                     move();
                 }
-
+                //this next block should never be an else block. Otherwise elevators will not return to default floor.
                 if (getLocation() != getDefaultFloor()) {
-                    ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
+                    ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), IDLE);
                     closeDoors();
                     setIdle();
                     addNextStop(getDefaultFloor());
                     setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
                     move();
-                    setDirection(Direction.IDLE);
                 }
 
-                if(doorsOpen()) {
+                if (doorsOpen()) {
                     closeDoors();
                 }
-
-                Thread.sleep(500L);
+                Thread.sleep(CREATION_RATE * 1000L);
                 elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+
             }
+            EventLogger.print("*** Simulation Ended ***");
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
         } catch(InterruptedException ie) {
@@ -123,12 +124,16 @@ class Elevator implements GenericElevator {
             openDoors();
             Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
+            System.out.println("Why is floor equal to getLocation()? " + floor + " " + getLocation());
             return;
         }
 
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
                 setDirection(Direction.UP);
+                if(doorsOpen()) {
+                    closeDoors();
+                }
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), UP);
                 try {
                     Thread.sleep(floorTime);
@@ -136,8 +141,10 @@ class Elevator implements GenericElevator {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
                 setLocation(i);
-                if(floor == getLocation()) {
+                if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().contains(new Integer(getLocation()))) {
+                    markFloorServed(i);
                     openDoors();
+                    ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), UP);
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             }
@@ -145,6 +152,9 @@ class Elevator implements GenericElevator {
         } else {
             for (int i = getLocation(); i >= floor; i--) {
                 setDirection(Direction.DOWN);
+                if(doorsOpen()) {
+                    closeDoors();
+                }
                 ElevatorDisplay.getInstance().updateElevator(getElevatorId(), i, getNumberOfRiders(), DOWN);
                 try {
                     Thread.sleep(floorTime);
@@ -152,8 +162,10 @@ class Elevator implements GenericElevator {
                     throw new ElevatorSystemException("INTERNAL ERROR: Thread interrupted.");
                 }
                 setLocation(i);
-                if(floor == getLocation()) {
+                if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().contains(new Integer(getLocation()))) {
+                    markFloorServed(i);
                     openDoors();
+                    ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             }
@@ -192,24 +204,28 @@ class Elevator implements GenericElevator {
     void enterRider(int personId, int destinationFloor) throws ElevatorSystemException {
         Validator.validateGreaterThanZero(personId);
         Validator.validateFloorNumber(destinationFloor);
-        addRiderRequest(destinationFloor);
+        //addRiderRequest(destinationFloor);
         addRider(personId);
+        gui.ElevatorDisplay.Direction dir = (getDirection() == Direction.UP) ? UP : ((getDirection() == Direction.DOWN) ? DOWN : IDLE);
+        ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), dir);
         EventLogger.print("Person P" + personId + " has entered Elevator " + getElevatorId() + " [Riders: " + printListOfRiders() + "]");
 
     }
     void exitRider(int personId, int floorNumber) throws ElevatorSystemException {
         Validator.validateGreaterThanZero(personId);
         Validator.validateFloorNumber(floorNumber);
-        removeRiderRequest(floorNumber);
         removeRider(personId);
+        gui.ElevatorDisplay.Direction dir = (getDirection() == Direction.UP) ? UP : ((getDirection() == Direction.DOWN) ? DOWN : IDLE);
+        ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), dir);
         EventLogger.print("Person P" + personId + " has left Elevator " + getElevatorId() + " [Riders: " + printListOfRiders() + "]");
     }
 
-    private void addRiderRequest(int destinationFloor) throws ElevatorSystemException {
+    void addRiderRequest(int destinationFloor) throws ElevatorSystemException {
         Validator.validateFloorNumber(destinationFloor);
         Integer o = new Integer(destinationFloor);
         if(!getRiderRequests().contains(o)) {
             getRiderRequests().add(o);
+            addNextStop(destinationFloor);
             EventLogger.print(
                     "Elevator " + getElevatorId() + " Rider Request made for Floor " + destinationFloor +
                     " [Current Floor Requests: " + printListOfFloorRequests() + "][Current Rider Requests: " + printListOfRiderRequests() + "]");
@@ -228,6 +244,7 @@ class Elevator implements GenericElevator {
         Integer o = new Integer(destinationFloor);
         if(!getFloorRequests().contains(o)) {
             getFloorRequests().add(o);
+            addNextStop(destinationFloor);
         }
         EventLogger.print(
                 "Elevator " + getElevatorId() + " Floor Request made for Floor " + destinationFloor +
@@ -315,7 +332,6 @@ class Elevator implements GenericElevator {
     }
 
     void setLocation(int location) throws ElevatorSystemException {
-        //NOTE: I used Building.getInstance().getNumberOfFloors() and got stuck for hours.
         Validator.validateFloorNumber(location);
         this.location = location;
     }
@@ -370,31 +386,58 @@ class Elevator implements GenericElevator {
 
     void addNextStop(int next) throws ElevatorSystemException {
         Validator.validateFloorNumber(next);
+        if(!nextStop()) {
+            setDirection(Utility.evaluateDirection(getLocation(), next));
+        }
         if(next < getLocation()) {
             if(!getReverseNextFloorQueue().contains(next)) {
                 getReverseNextFloorQueue().offer(next);
             }
-            return;
+        } else if(next > getLocation()) {
+            if(!getNaturalNextFloorQueue().contains(next)) {
+                getNaturalNextFloorQueue().offer(next);
+            }
+        } else {
+            throw new ElevatorSystemException("Elevator is on the same floor. No need to add next stop.");
         }
-        if(!getNaturalNextFloorQueue().contains(next)) {
-            getNaturalNextFloorQueue().offer(next);
-        }
-
     }
 
-    private Integer peekNextStop() {
-        if(getDirection() == Direction.IDLE) {
+    private Integer peekNextStop() throws ElevatorSystemException {
+        if(getDirection() == Direction.UP) {
             if(getNaturalNextFloorQueue().peek() != null) {
                 return getNaturalNextFloorQueue().peek();
             }
-            return getReverseNextFloorQueue().peek();
+            throw new ElevatorSystemException("must have a next stop if direction is not IDLE");
         }
-        if(getNextFloorQueue().peek() != null) {
-            return getNextFloorQueue().peek();
+        if(getDirection() == Direction.DOWN) {
+            if(getReverseNextFloorQueue().peek() != null) {
+                return getReverseNextFloorQueue().peek();
+            }
+            throw new ElevatorSystemException("must have a next stop if direction is not IDLE");
         }
-        return null;
+        throw new ElevatorSystemException("no next stop for IDLE");
     }
     private Integer pollNextStop() throws ElevatorSystemException {
+        if(getDirection() == Direction.UP) {
+            if(getNaturalNextFloorQueue().peek() != null) {
+                return getNaturalNextFloorQueue().poll();
+            }
+            if(getReverseNextFloorQueue().peek() != null) {
+                setDirection(Direction.DOWN);
+                return getReverseNextFloorQueue().poll();
+            }
+        }
+        if(getDirection() == Direction.DOWN) {
+            if(getReverseNextFloorQueue().peek() != null) {
+                return getReverseNextFloorQueue().poll();
+            }
+            if(getNaturalNextFloorQueue().peek() != null) {
+                setDirection(Direction.UP);
+                getNaturalNextFloorQueue().poll();
+            }
+        }
+        throw new ElevatorSystemException("no next stop for idle elevator.");
+        /*
         if(getDirection() == Direction.IDLE) {
             if(getNaturalNextFloorQueue().peek() != null) {
                 int next = getNaturalNextFloorQueue().poll();
@@ -410,14 +453,23 @@ class Elevator implements GenericElevator {
         }
         if(getNextFloorQueue().peek() != null) {
             return getNextFloorQueue().poll();
-        }
-        return null;
+        }*/
+        //return null;
     }
-    private boolean nextStop() {
+    boolean nextStop() {
         if(getReverseNextFloorQueue().peek() == null && getNaturalNextFloorQueue().peek() == null) {
             return false;
         }
         return true;
+    }
+
+    private void markFloorServed(int floor) throws ElevatorSystemException {
+        if(getFloorRequests().contains(new Integer(floor))) {
+            removeFloorRequest(new Integer(floor));
+        }
+        if(getRiderRequests().contains(floor)) {
+            removeRiderRequest(floor);
+        }
     }
 
     String printListOfRiderRequests() throws ElevatorSystemException {

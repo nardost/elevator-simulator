@@ -201,6 +201,11 @@ public class Utility {
         sb.append(Arrays.toString(rideTimes));
         sb.append("\n");
 
+        if(ElevatorController.getInstance().moreFloorRequests()) {
+            sb.append("\n");
+            sb.append("There are unhandled floor requests....\n");
+        }
+
         return sb.toString();
     }
 }

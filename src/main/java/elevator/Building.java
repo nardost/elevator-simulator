@@ -150,6 +150,7 @@ public class Building implements Observable {
                 Thread.sleep(CREATION_RATE * 1000L);
                 elapsedSeconds = TimeUnit.MILLISECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
             }
+            EventLogger.print("Done with rider generation.");
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
         } catch(InterruptedException ie) {

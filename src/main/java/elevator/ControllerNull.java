@@ -38,4 +38,9 @@ class ControllerNull implements Controller {
         Validator.validateGreaterThanZero(personId);
         Validator.validateFloorNumber(floorNumber);
     }
+
+    @Override
+    public boolean moreFloorRequests() {
+        return false;
+    }
 }

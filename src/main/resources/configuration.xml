@@ -2,7 +2,7 @@
 <configuration>
     <property name="numberOfFloors"     value="20" />
     <property name="numberOfElevators"  value="4" />
-    <property name="elevatorCapacity"   value="15" />
+    <property name="elevatorCapacity"   value="100" />
     <property name="floorTime"          value="1" />
     <property name="doorTime"           value="2" />
     <property name="timeout"            value="10" />

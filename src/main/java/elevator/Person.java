@@ -87,7 +87,6 @@ class Person implements Rider, Observer {
 
         if(getStatus() == RiderStatus.RIDING && elevatorId == getElevatorBoardedOn() && floorNumber == destinationFloor) {
             exitElevator(elevatorId);
-            return;
         }
 
         if(getStatus() == RiderStatus.WAITING) {
