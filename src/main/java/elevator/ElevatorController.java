@@ -14,7 +14,7 @@ class ElevatorController {
     private static ElevatorController controlCenter = null;
 
     private ElevatorController() throws ElevatorSystemException {
-        SystemConfiguration.initializeSystemConfiguration();
+
         setController(ControllerFactory.createController());
     }
 

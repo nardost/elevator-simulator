@@ -25,12 +25,8 @@ public class UtilityValidFloorRequestTest {
     @Parameters(name = "invalid-floor-request_{index}: {0}")
     public static Collection<Object[]> data() {
         int max = 1000;
-        try {
-            SystemConfiguration.initializeSystemConfiguration();
-            max = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
-        } catch(ElevatorSystemException ese) {
-            fail();
-        }
+        max = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
+
         return Stream.of(new Object[][] {
                 {max + "U"},
                 {(max + 1) + "D"},

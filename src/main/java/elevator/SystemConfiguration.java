@@ -50,6 +50,11 @@ public class SystemConfiguration {
     }
 
     public static String getConfiguration(String config) {
+        try {
+            initializeSystemConfiguration();
+        } catch(ElevatorSystemException ese) {
+            System.out.println(ese.getMessage());
+        }
         return configurationTable.get(config);
     }
 

@@ -33,7 +33,7 @@ public class Utility {
         String floorPart = key.substring(0, key.length() - 1);
         String directionPart = key.substring(key.length() - 1);
         try {
-            SystemConfiguration.initializeSystemConfiguration();
+
             final int NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
             int floor = Integer.parseInt(floorPart);
             if(floor < 1 || floor > NUMBER_OF_FLOORS) {
@@ -47,8 +47,6 @@ public class Utility {
             }
         } catch(NumberFormatException nfe) {
             return false;
-        } catch(ElevatorSystemException ese) {
-            ese.getMessage();
         }
         return false;
     }

@@ -32,7 +32,7 @@ class Elevator implements GenericElevator {
     private static int instanceCounter = 0;
 
     Elevator() throws ElevatorSystemException {
-        SystemConfiguration.initializeSystemConfiguration();
+
         setElevatorId(++instanceCounter);
         setSpeed();
         setDirection(Direction.IDLE);
@@ -49,7 +49,7 @@ class Elevator implements GenericElevator {
             long elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
             final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
-            while (elapsedSeconds < SIMULATION_DURATION * 2L) {
+            while (elapsedSeconds < SIMULATION_DURATION * 5L) {
 
                 if (nextStop()) {
                     move();

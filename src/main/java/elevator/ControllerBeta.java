@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 class ControllerBeta implements Controller {
 
-    private AbstractQueue<FloorRequest> floorRequestQueue;
+    private ArrayBlockingQueue<FloorRequest> floorRequestQueue;
     private Map<Integer, Elevator> elevators;
 
     private final int NUMBER_OF_FLOORS;
@@ -58,8 +58,6 @@ class ControllerBeta implements Controller {
             for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
                 threads[i - 1].join();
             }
-            //controllerThread.join();
-            //buildingThread.join();
         } catch(InterruptedException ie) {
             ie.printStackTrace();
         }
@@ -78,11 +76,11 @@ class ControllerBeta implements Controller {
                         System.out.println(getFloorRequests().size() + " floor requests. Awake -- Controller");
                     }
                 } catch(InterruptedException ie) {
-
+                    ie.printStackTrace();
                 }
                 try {
                     System.out.println("inside controller .... " + getFloorRequests().size());
-                    FloorRequest request = getFloorRequests().remove();
+                    FloorRequest request = getFloorRequests().poll();
                     int fromFloorNumber = request.getFloorOfOrigin();
                     Direction direction = request.getDirectionRequested();
                     Elevator e = selectElevator(fromFloorNumber, direction);
@@ -135,15 +133,6 @@ class ControllerBeta implements Controller {
             System.out.println(getFloorRequests().size() + " Requests: Floor request added in Building thread...");
             getFloorRequests().notifyAll();
         }
-        /**
-        Elevator e = selectElevator(fromFloorNumber, direction);
-        if(e != null) {
-            removeFloorRequest(request);
-            e.addFloorRequest(fromFloorNumber, direction);
-            e.setDispatched(true);
-            e.setDispatchedToServeDirection(direction);
-            e.setDispatchedForFloor(fromFloorNumber);
-        }*/
     }
 
     @Override
@@ -171,19 +160,16 @@ class ControllerBeta implements Controller {
         return getElevators().get(new Integer(id));
     }
 
-    private AbstractQueue<FloorRequest> getFloorRequests() {
+    private ArrayBlockingQueue<FloorRequest> getFloorRequests() {
         return this.floorRequestQueue;
     }
     private void saveFloorRequest(FloorRequest floorRequest) {
-        AbstractQueue<FloorRequest> floorRequests = getFloorRequests();
+        ArrayBlockingQueue<FloorRequest> floorRequests = getFloorRequests();
         if(!floorRequests.contains(floorRequest)) {
             floorRequests.offer(floorRequest);
         }
     }
 
-    private void removeFloorRequest(FloorRequest floorRequest) {
-        getFloorRequests().remove(floorRequest);
-    }
     private String printListOfFloorRequests() throws ElevatorSystemException {
         List<FloorRequest> list = getFloorRequests().stream().collect(Collectors.toList());
         return Utility.listToString(list, "", ", ", "");

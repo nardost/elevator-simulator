@@ -29,10 +29,10 @@ public class Building implements Observable {
     private static Building theBuilding = null;
 
     private Building() throws ElevatorSystemException {
-        SystemConfiguration.initializeSystemConfiguration();
+
         numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
         numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-        zeroTime = System.currentTimeMillis();//System.currentTimeMillis();
+        zeroTime = System.currentTimeMillis();
         zeroInstant = Instant.now();
     }
 
