@@ -32,7 +32,7 @@ public class Building implements Observable {
         SystemConfiguration.initializeSystemConfiguration();
         numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
         numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-        zeroTime = System.nanoTime();
+        zeroTime = System.currentTimeMillis();//System.currentTimeMillis();
         zeroInstant = Instant.now();
     }
 
@@ -137,7 +137,7 @@ public class Building implements Observable {
         try {
             Random random = new Random(97);
             int numberOfFloors = getNumberOfFloors();
-            long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            long elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
             final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
             while (elapsedSeconds < SIMULATION_DURATION) {
@@ -145,11 +145,10 @@ public class Building implements Observable {
                 int destination = 1 + random.nextInt(numberOfFloors);
                 while(origin == destination) {
                     destination = 1 + random.nextInt(numberOfFloors);
-                    System.out.println("$*$(&$$*$&*($&*$&*$*$)(*&_#_&$&$&$&*$&$$_&(*$&&)(_&(");
                 }
                 generatePerson(origin, destination);
                 Thread.sleep(CREATION_RATE * 1000L);
-                elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+                elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             }
             EventLogger.print("Done with rider generation.");
         } catch(ElevatorSystemException ese) {

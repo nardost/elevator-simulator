@@ -34,8 +34,13 @@ class EventLogger {
     }
 
     public static void print(String msg) throws ElevatorSystemException {
-        String eventString = Utility.formatElapsedTime(System.nanoTime()) + " " + msg;
-        System.out.println(eventString);
-        EventLogger.getInstance().logEvent(eventString);
+        StringBuilder sb = new StringBuilder(Utility.formatElapsedTime(System.currentTimeMillis()));
+        sb.append(Thread.currentThread().getName());
+        sb.append(" " + msg);
+        for(int i = 0; i < 150 - sb.toString().length(); i++) {
+            sb.append(" ");
+        }
+        System.out.println(sb.toString());
+        EventLogger.getInstance().logEvent(sb.toString());
     }
 }

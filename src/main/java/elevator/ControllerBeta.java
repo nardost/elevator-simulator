@@ -2,6 +2,7 @@ package elevator;
 
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 class ControllerBeta implements Controller {
@@ -11,6 +12,8 @@ class ControllerBeta implements Controller {
 
     private final int NUMBER_OF_FLOORS;
     private final int NUMBER_OF_ELEVATORS;
+    private final long SIMULATION_DURATION;
+    private final long CREATION_RATE;
 
     private int serviceCount = 0;
 
@@ -18,6 +21,8 @@ class ControllerBeta implements Controller {
         try {
             NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
             NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
+            SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
+            CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
             this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
 
             this.elevators = new HashMap<>();
@@ -37,57 +42,66 @@ class ControllerBeta implements Controller {
         for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
             Elevator e = getElevator(i);
             threads[i - 1] = new Thread(() -> e.run());
-            threads[i - 1].setName("THREAD_ELEVATOR_" + i);
+            threads[i - 1].setName("(elevator_" + i + ")");
             threads[i - 1].start();
         }
         Thread buildingThread = new Thread(() -> building.run());
-        buildingThread.setName("THREAD_BUILDING");
+        buildingThread.setName("(building)");
         buildingThread.start();
-/*
+
         ControllerBeta self = this;
         Thread controllerThread = new Thread(() -> self.serveFloorRequests());
-        controllerThread.setName("THREAD_CONTROLLER");
+        controllerThread.setName("(controller)");
         controllerThread.start();
-*/
+
         try {
             for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
                 threads[i - 1].join();
             }
             //controllerThread.join();
-            buildingThread.join();
-
+            //buildingThread.join();
         } catch(InterruptedException ie) {
             ie.printStackTrace();
         }
     }
 
-    //TODO: trying another thread....
     private void serveFloorRequests() {
         System.out.println("inside controller thread...");
-        while(true) {
-            if(getFloorRequests().isEmpty()) {
-                break;
-            }
-            System.out.println("*************************************************************");
-            FloorRequest request = getFloorRequests().element();
 
-            int fromFloorNumber = request.getFloorOfOrigin();
-            Direction direction = request.getDirectionRequested();
-            try {
-                Elevator e = selectElevator(fromFloorNumber, direction);
-                if (e != null) {
-                    removeFloorRequest(request);
-                    e.addFloorRequest(fromFloorNumber, direction);
-                    e.setDispatched(true);
-                    e.setDispatchedToServeDirection(direction);
-                    e.setDispatchedForFloor(fromFloorNumber);
-                    Thread.sleep(1000);
+        try {
+            long elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
+            while (elapsedSeconds < SIMULATION_DURATION * 2L) {
+                try {
+                    synchronized (getFloorRequests()) {
+                        System.out.println(getFloorRequests().size() + " floor requests. Waiting -- Controller");
+                        getFloorRequests().wait();
+                        System.out.println(getFloorRequests().size() + " floor requests. Awake -- Controller");
+                    }
+                } catch(InterruptedException ie) {
+
                 }
-            } catch(ElevatorSystemException ese) {
-                //TODO
-            } catch(InterruptedException ie) {
-                //TODO
+                try {
+                    System.out.println("inside controller .... " + getFloorRequests().size());
+                    FloorRequest request = getFloorRequests().remove();
+                    int fromFloorNumber = request.getFloorOfOrigin();
+                    Direction direction = request.getDirectionRequested();
+                    Elevator e = selectElevator(fromFloorNumber, direction);
+                    if (e != null) {
+                        EventLogger.print("Elevator " + e.getElevatorId() + " allocated to floor request " + request.toString());
+                        e.addFloorRequest(fromFloorNumber, direction);
+                        e.setDispatched(true);
+                        e.setDispatchedToServeDirection(direction);
+                        e.setDispatchedForFloor(fromFloorNumber);
+                    } else {
+                        //TODO Add to pending requests....
+                    }
+                } catch(ElevatorSystemException ese) {
+                    System.out.println(ese.getMessage());
+                }
+                elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             }
+        } catch (ElevatorSystemException ese) {
+            System.out.println(ese.getMessage());
         }
     }
 
@@ -115,8 +129,13 @@ class ControllerBeta implements Controller {
         Validator.validateFloorNumber(fromFloorNumber);
         FloorRequest request = (FloorRequest) FloorRequestFlyweightFactory.getInstance()
                 .getFloorRequest(Utility.encodeFloorRequestKey(fromFloorNumber, direction));
-        saveFloorRequest(request);
-        System.out.println("Running in thread...." + Thread.currentThread().getName());
+
+        synchronized(getFloorRequests()) {
+            saveFloorRequest(request);
+            System.out.println(getFloorRequests().size() + " Requests: Floor request added in Building thread...");
+            getFloorRequests().notifyAll();
+        }
+        /**
         Elevator e = selectElevator(fromFloorNumber, direction);
         if(e != null) {
             removeFloorRequest(request);
@@ -124,7 +143,7 @@ class ControllerBeta implements Controller {
             e.setDispatched(true);
             e.setDispatchedToServeDirection(direction);
             e.setDispatchedForFloor(fromFloorNumber);
-        }
+        }*/
     }
 
     @Override
@@ -157,18 +176,13 @@ class ControllerBeta implements Controller {
     }
     private void saveFloorRequest(FloorRequest floorRequest) {
         AbstractQueue<FloorRequest> floorRequests = getFloorRequests();
-        synchronized(floorRequests) {
-            if(!floorRequests.contains(floorRequest)) {
-                floorRequests.offer(floorRequest);
-            }
+        if(!floorRequests.contains(floorRequest)) {
+            floorRequests.offer(floorRequest);
         }
     }
 
     private void removeFloorRequest(FloorRequest floorRequest) {
-        AbstractQueue<FloorRequest> floorRequests = getFloorRequests();
-        synchronized(floorRequests) {
-            floorRequests.remove(floorRequest);
-        }
+        getFloorRequests().remove(floorRequest);
     }
     private String printListOfFloorRequests() throws ElevatorSystemException {
         List<FloorRequest> list = getFloorRequests().stream().collect(Collectors.toList());

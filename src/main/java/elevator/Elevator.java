@@ -46,29 +46,31 @@ class Elevator implements GenericElevator {
 
     void run() {
         try {
-            long elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+            long elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
             final long CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
-            while (elapsedSeconds < SIMULATION_DURATION * 4L) {
+            while (elapsedSeconds < SIMULATION_DURATION * 2L) {
 
                 if (nextStop()) {
                     move();
                 }
                 //this next block should never be an else block. Otherwise elevators will not return to default floor.
-                if (getLocation() != getDefaultFloor()) {
-                    ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), IDLE);
-                    closeDoors();
-                    setIdle();
-                    addNextStop(getDefaultFloor());
-                    setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
-                    move();
-                }
+                //if(!nextStop()) {
+                    if (getLocation() != getDefaultFloor()) {
+                        ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), IDLE);
+                        closeDoors();
+                        setIdle();
+                        addNextStop(getDefaultFloor());
+                        setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
+                        move();
+                    }
+                //}
 
                 if (doorsOpen()) {
                     closeDoors();
                 }
                 Thread.sleep(CREATION_RATE * 1000L);
-                elapsedSeconds = TimeUnit.SECONDS.convert((System.nanoTime() - Building.getInstance().getZeroTime()), TimeUnit.NANOSECONDS);
+                elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
 
             }
             EventLogger.print("*** Simulation Ended ***");
@@ -133,7 +135,7 @@ class Elevator implements GenericElevator {
             Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
             ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
             System.out.println("Why is floor equal to getLocation()? " + floor + " " + getLocation());
-            return;
+            //return;
         }
 
         if(getLocation() < floor) {

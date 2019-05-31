@@ -103,18 +103,9 @@ public class Utility {
         return str.substring(0, cols);
     }
 
-    public static String formatElapsedInstant() throws ElevatorSystemException  {//uses Instant
-        long elapsed = Duration.between(Building.getInstance().getZeroInstant(), Instant.now()).toNanos();
-        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsed, TimeUnit.NANOSECONDS);
-        long s = elapsedSeconds % 60;
-        long m = ((elapsedSeconds - s) % 3600) / 60;
-        long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
-        return String.format("%02d:%02d:%02d", h, m, s);
-    }
-
-    public static String formatElapsedTime(long nanoTime) throws ElevatorSystemException  {//uses System.nanoTime()
-        long elapsedTime = nanoTime - Building.getInstance().getZeroTime();
-        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
+    public static String formatElapsedTime(long milliTime) throws ElevatorSystemException  {//uses System.currentTimeMillis()
+        long elapsedTime = milliTime - Building.getInstance().getZeroTime();
+        long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.MILLISECONDS);
         long s = elapsedSeconds % 60;
         long m = ((elapsedSeconds - s) % 3600) / 60;
         long h = (elapsedSeconds - (elapsedSeconds - s) % 3600) / 60;
@@ -127,7 +118,7 @@ public class Utility {
             sb.append("0");
         }
         DecimalFormat df = new DecimalFormat(sb.toString());
-        return df.format(new Long(TimeUnit.MILLISECONDS.convert(nano, TimeUnit.NANOSECONDS)).doubleValue() / 1000.0);
+        return df.format(new Long(TimeUnit.MILLISECONDS.convert(nano, TimeUnit.MILLISECONDS)).doubleValue() / 1000.0);
     }
 
     public static String generateReport(List<Person> list) throws ElevatorSystemException {
@@ -179,7 +170,7 @@ public class Utility {
         minWaitTime = Arrays.stream(waitTimes).summaryStatistics().getMin();
         maxWaitTime = Arrays.stream(waitTimes).summaryStatistics().getMax();
         totalWaitTime = Arrays.stream(waitTimes).summaryStatistics().getSum();
-        averageWaitTime = /*Arrays.stream(waitTimes).summaryStatistics().getAverage();*/new Long(totalWaitTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
+        averageWaitTime = new Long(totalWaitTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
         minRideTime = Arrays.stream(rideTimes).min().getAsLong();//.summaryStatistics().getMin();//.min().getAsLong();
         maxRideTime = Arrays.stream(rideTimes).summaryStatistics().getMax();//.max().getAsLong();
         totalRideTime = Arrays.stream(rideTimes).sum();

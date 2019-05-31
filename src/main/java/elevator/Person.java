@@ -22,7 +22,7 @@ class Person implements Rider, Observer {
         setId(++instanceCounter);
         setOriginFloor(origin);
         setDestinationFloor(destination);
-        setCreatedTime(System.nanoTime());
+        setCreatedTime(System.currentTimeMillis());
         setStatus(RiderStatus.WAITING);
     }
 
@@ -62,14 +62,14 @@ class Person implements Rider, Observer {
         int origin = getOriginFloor();
         setStatus(RiderStatus.RIDING);
         setElevatorBoardedOn(elevatorId);
-        setBoardingTime(System.nanoTime());
+        setBoardingTime(System.currentTimeMillis());
         Building.getInstance().relayElevatorRequestToControlCenter(elevatorId, destination, origin, getId());
     }
 
     @Override
     public void exitElevator(int elevatorId) throws ElevatorSystemException {
         setStatus(RiderStatus.DONE);
-        setExitTime(System.nanoTime());
+        setExitTime(System.currentTimeMillis());
         Building.getInstance().relayExitRiderFromElevatorMessage(elevatorId, getDestinationFloor(), getId());
     }
 
