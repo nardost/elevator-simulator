@@ -135,44 +135,51 @@ public class Utility {
         double averageRideTime;
         int personWithMinRideTime;
         int personWithMaxRideTime;
+        StringBuilder undone = new StringBuilder();
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         sb.append("Person\tStart Floor\tEnd Floor\tDirection\tWait Time\tRide Time\tTotal Time\n");
         sb.append("------\t-----------\t---------\t---------\t---------\t---------\t----------\n");
-        list.forEach(rider -> {
-            Person p = (Person) rider;
+        list.forEach(p -> {
             long waitTime = p.getBoardingTime() - p.getCreatedTime();
             long rideTime = p.getExitTime() - p.getBoardingTime();
             long totalTime = p.getExitTime() - p.getCreatedTime();
+            if(p.getStatus() != RiderStatus.DONE) {
+                if(undone.length() > 0) {
+                    undone.append(", ");
+                }
+                undone.append("P" + p.getId());
+            } else {
 
-            waitTimes[p.getId() - 1] = waitTime;
-            rideTimes[p.getId() - 1] = rideTime;
+                waitTimes[p.getId() - 1] = waitTime;
+                rideTimes[p.getId() - 1] = rideTime;
 
-            String id = "P" + p.getId();
-            String origin = Integer.toString(p.getOriginFloor());
-            String destination = Integer.toString(p.getDestinationFloor());
-            String direction = ((p.getOriginFloor() < p.getDestinationFloor()) ? Direction.UP : Direction.DOWN).toString();
-            String waitTimeStr = Utility.nanoToRoundedSeconds(waitTime, 1);
-            String rideTimeStr = Utility.nanoToRoundedSeconds(rideTime, 1);
-            String totalTimeStr = Utility.nanoToRoundedSeconds(totalTime, 1);
-            sb.append(
-                    Utility.formatColumnString(id, 6) + "\t" +
-                            Utility.formatColumnString(origin, 11) + "\t" +
-                            Utility.formatColumnString(destination, 9) + "\t" +
-                            Utility.formatColumnString(direction, 9) + "\t" +
-                            Utility.formatColumnString(waitTimeStr, 9) + "\t" +
-                            Utility.formatColumnString(rideTimeStr, 9) + "\t" +
-                            Utility.formatColumnString(totalTimeStr, 10) + "\n");
+                String id = "P" + p.getId();
+                String origin = Integer.toString(p.getOriginFloor());
+                String destination = Integer.toString(p.getDestinationFloor());
+                String direction = ((p.getOriginFloor() < p.getDestinationFloor()) ? Direction.UP : Direction.DOWN).toString();
+                String waitTimeStr = Utility.nanoToRoundedSeconds(waitTime, 1);
+                String rideTimeStr = Utility.nanoToRoundedSeconds(rideTime, 1);
+                String totalTimeStr = Utility.nanoToRoundedSeconds(totalTime, 1);
+                sb.append(
+                        Utility.formatColumnString(id, 6) + "\t" +
+                                Utility.formatColumnString(origin, 11) + "\t" +
+                                Utility.formatColumnString(destination, 9) + "\t" +
+                                Utility.formatColumnString(direction, 9) + "\t" +
+                                Utility.formatColumnString(waitTimeStr, 9) + "\t" +
+                                Utility.formatColumnString(rideTimeStr, 9) + "\t" +
+                                Utility.formatColumnString(totalTimeStr, 10) + "\n");
+            }
         });
 
         minWaitTime = Arrays.stream(waitTimes).summaryStatistics().getMin();
         maxWaitTime = Arrays.stream(waitTimes).summaryStatistics().getMax();
         totalWaitTime = Arrays.stream(waitTimes).summaryStatistics().getSum();
         averageWaitTime = new Long(totalWaitTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
-        minRideTime = Arrays.stream(rideTimes).min().getAsLong();//.summaryStatistics().getMin();//.min().getAsLong();
-        maxRideTime = Arrays.stream(rideTimes).summaryStatistics().getMax();//.max().getAsLong();
+        minRideTime = Arrays.stream(rideTimes).min().getAsLong();
+        maxRideTime = Arrays.stream(rideTimes).summaryStatistics().getMax();
         totalRideTime = Arrays.stream(rideTimes).sum();
-        averageRideTime = /*Arrays.stream(rideTimes).summaryStatistics().getAverage();*/new Long(totalRideTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
+        averageRideTime = new Long(totalRideTime).doubleValue() / new Integer(TOTAL_NUMBER_OF_PEOPLE).doubleValue();
 
         StringBuilder psb = new StringBuilder("(P");
 
@@ -192,8 +199,9 @@ public class Utility {
 
         sb.append("\n");
         sb.append("Unhandled floor requests: " + ElevatorController.getInstance().unhandledFloorRequests());
+        sb.append("\n");
+        sb.append("Undone Riders: " + undone.toString());
 
         return sb.toString();
     }
 }
-

@@ -33,6 +33,10 @@ class ElevatorController {
     void run() throws ElevatorSystemException {
         controller.run();
     }
+    boolean pendingRequests(int elevatorId) throws ElevatorSystemException {
+        Validator.validateElevatorNumber(elevatorId);
+        return controller.pendingFloorRequests(elevatorId);
+    }
 
     void receiveFloorRequest(int fromFloorNumber, Direction desiredDirection) throws ElevatorSystemException {
         Validator.validateFloorNumber(fromFloorNumber);

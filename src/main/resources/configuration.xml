@@ -11,5 +11,6 @@
     <property name="logFile"            value="../../log.txt" />
     <property name="controller"         value="beta" />
     <property name="creationRate"       value="2" />
-    <property name="simulationDuration" value="30" />
+    <property name="simulationDuration" value="60" />
+    <property name="delayFactor"        value="5" />
 </configuration>

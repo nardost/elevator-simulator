@@ -1,6 +1,9 @@
 package elevator;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -8,22 +11,21 @@ import java.util.stream.Collectors;
 class ControllerBeta implements Controller {
 
     private ArrayBlockingQueue<FloorRequest> floorRequestQueue;
+    private ArrayBlockingQueue<FloorRequest> pendingRequestQueue;
     private Map<Integer, Elevator> elevators;
 
     private final int NUMBER_OF_FLOORS;
     private final int NUMBER_OF_ELEVATORS;
     private final long SIMULATION_DURATION;
-    private final long CREATION_RATE;
-
-    private int serviceCount = 0;
 
     ControllerBeta() throws ElevatorSystemException {
         try {
             NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
             NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
             SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
-            CREATION_RATE = Long.parseLong(SystemConfiguration.getConfiguration("creationRate"));
+
             this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
+            this.pendingRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
 
             this.elevators = new HashMap<>();
             for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
@@ -31,19 +33,19 @@ class ControllerBeta implements Controller {
                 this.elevators.put(i, e);
             }
         } catch (NumberFormatException nfe) {
-            throw new ElevatorSystemException("Bad format in number of elevators. Check config file.");
+            throw new ElevatorSystemException("Bad number format in configuration file.");
         }
     }
 
     @Override
     public void run() throws ElevatorSystemException {
         Building building = Building.getInstance();
-        Thread threads[] = new Thread[NUMBER_OF_ELEVATORS];
+        Thread elevatorThreads[] = new Thread[NUMBER_OF_ELEVATORS];
         for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
             Elevator e = getElevator(i);
-            threads[i - 1] = new Thread(() -> e.run());
-            threads[i - 1].setName("(elevator_" + i + ")");
-            threads[i - 1].start();
+            elevatorThreads[i - 1] = new Thread(() -> e.run());
+            elevatorThreads[i - 1].setName("(elevator_" + i + ")");
+            elevatorThreads[i - 1].start();
         }
         Thread buildingThread = new Thread(() -> building.run());
         buildingThread.setName("(building)");
@@ -56,8 +58,9 @@ class ControllerBeta implements Controller {
 
         try {
             for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
-                threads[i - 1].join();
+                elevatorThreads[i - 1].join();
             }
+            System.out.println("Elevator threads ended....");
         } catch(InterruptedException ie) {
             ie.printStackTrace();
         }
@@ -81,17 +84,19 @@ class ControllerBeta implements Controller {
                 try {
                     System.out.println("inside controller .... " + getFloorRequests().size());
                     FloorRequest request = getFloorRequests().poll();
-                    int fromFloorNumber = request.getFloorOfOrigin();
-                    Direction direction = request.getDirectionRequested();
-                    Elevator e = selectElevator(fromFloorNumber, direction);
+                    if(request == null) {
+                        continue;
+                    }
+
+                    Elevator e = selectElevator(request);
                     if (e != null) {
+                        int fromFloorNumber = request.getFloorOfOrigin();
+                        Direction direction = request.getDirectionRequested();
                         EventLogger.print("Elevator " + e.getElevatorId() + " allocated to floor request " + request.toString());
                         e.addFloorRequest(fromFloorNumber, direction);
                         e.setDispatched(true);
                         e.setDispatchedToServeDirection(direction);
                         e.setDispatchedForFloor(fromFloorNumber);
-                    } else {
-                        //TODO Add to pending requests....
                     }
                 } catch(ElevatorSystemException ese) {
                     System.out.println(ese.getMessage());
@@ -152,6 +157,69 @@ class ControllerBeta implements Controller {
 
     }
 
+    @Override
+    public boolean pendingFloorRequests(int elevatorId) throws ElevatorSystemException {
+        Validator.validateElevatorNumber(elevatorId);
+        //(1)
+        if(getPendingRequests().isEmpty()) {
+            //(2)
+            return false;
+        }
+        //(3)
+        Elevator e = getElevator(elevatorId);
+        FloorRequest request = getPendingRequests().poll();
+        int fromFloorNumber = request.getFloorOfOrigin();
+        Direction direction = request.getDirectionRequested();
+        e.addFloorRequest(fromFloorNumber, direction);
+        e.setDispatched(true);
+        e.setDispatchedToServeDirection(direction);
+        e.setDispatchedForFloor(fromFloorNumber);
+        //(4)
+        while(!getPendingRequests().isEmpty()) {
+            Iterator iterator = getPendingRequests().iterator();
+            while(iterator.hasNext()) {
+                //(6)
+                request = (FloorRequest) iterator.next();
+                if(direction == request.getDirectionRequested()) {
+                    //(8)
+                    if(direction == Direction.UP) {
+                        //(9)
+                        if(Utility.evaluateDirection(fromFloorNumber, request.getFloorOfOrigin()) == Direction.UP) {
+                            //(11)
+                            //TODO: Remove from Pending List, add to Elevator, and continue...
+                            getPendingRequests().remove(request);
+                            fromFloorNumber = request.getFloorOfOrigin();
+                            direction = request.getDirectionRequested();
+                            e.addFloorRequest(fromFloorNumber, direction);
+                            continue;
+                        } else {
+                            //(7)
+                        }
+                    } else {
+                        //(10)
+                        if(Utility.evaluateDirection(fromFloorNumber, request.getFloorOfOrigin()) == Direction.DOWN) {
+                            //(12)
+                            //Remove from Pending List, add to Elevator, and continue...
+                            getPendingRequests().remove(request);
+                            fromFloorNumber = request.getFloorOfOrigin();
+                            direction = request.getDirectionRequested();
+                            e.addFloorRequest(fromFloorNumber, direction);
+                            continue;
+                        } else {
+                            //(13)
+                            continue;
+                        }
+                    }
+                } else {
+                    //(7)
+                    continue;
+                }
+            }
+        }
+        //(5)
+        return true;
+    }
+
     private Map<Integer, Elevator> getElevators() {
         return this.elevators;
     }
@@ -170,40 +238,22 @@ class ControllerBeta implements Controller {
         }
     }
 
+    private ArrayBlockingQueue<FloorRequest> getPendingRequests() {
+        return this.pendingRequestQueue;
+    }
+
     private String printListOfFloorRequests() throws ElevatorSystemException {
-        List<FloorRequest> list = getFloorRequests().stream().collect(Collectors.toList());
+        List<FloorRequest> list = getPendingRequests().stream().collect(Collectors.toList());
         return Utility.listToString(list, "", ", ", "");
     }
 
-    private Elevator selectElevator1(int floor, Direction direction) {
-        serviceCount++;
-        int selected = 1 + serviceCount % 4;
-        return getElevator(selected);
-    }
-    private Elevator selectElevator2(int floor, Direction direction) {
-        for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
-            Elevator e = getElevator(i);
-            if(e.getDirection() == Direction.IDLE) {
-                return e;
-            }
-            if(e.getDirection() == Direction.UP && direction == Direction.UP && e.getLocation() <= floor) {
-                return e;
-            }
-            if(e.getDirection() == Direction.DOWN && direction == Direction.DOWN && e.getLocation() >= floor) {
-                return e;
-            }
-        }
-
-        Random random = new Random(100);
-        return getElevator(1 + random.nextInt(NUMBER_OF_ELEVATORS));
-    }
-
-    private Elevator selectElevator(int floor, Direction direction) throws ElevatorSystemException {
+    private Elevator selectElevator(FloorRequest request) throws ElevatorSystemException {
+        int floor = request.getFloorOfOrigin();
+        Direction direction = request.getDirectionRequested();
         Elevator e = null;
         if(elevator(floor) > 0) {
             //(1)
             if(elevator(floor) > 0 && (elevator(Direction.IDLE) > 0 || elevator(direction) > 0)) {//(5)
-                //TODO
                 for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
                     e = getElevator(i);
                     if(e.getLocation() == floor && (e.getDirection() == Direction.IDLE || e.getDirection() == direction)) {
@@ -235,8 +285,9 @@ class ControllerBeta implements Controller {
                         }
                     }
                 } else {//(4)
-                    //TODO: PendingRequest
-                    EventLogger.print("Pending Requests: " + printListOfFloorRequests());
+                    //Pending Request
+                    getPendingRequests().offer(request);
+                    return null;
                 }
             }
         }

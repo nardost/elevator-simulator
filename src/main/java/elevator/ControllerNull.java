@@ -40,6 +40,11 @@ class ControllerNull implements Controller {
     }
 
     @Override
+    public boolean pendingFloorRequests(int elevatorId) throws ElevatorSystemException {
+        return false;
+    }
+
+    @Override
     public String unhandledFloorRequests() throws ElevatorSystemException {
         return "";
     }

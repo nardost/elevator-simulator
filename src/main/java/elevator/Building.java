@@ -1,6 +1,5 @@
 package elevator;
 
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -20,7 +19,6 @@ public class Building implements Observable {
     private int numberOfFloors;
     private int numberOfElevators;
     private static long zeroTime;
-    private static Instant zeroInstant;
 
     private List<Observer> observers = new CopyOnWriteArrayList<>();
     /** Chosen over ArrayList to avoid a recurring ConcurrentModificationException while updating in iterator.*/
@@ -33,7 +31,6 @@ public class Building implements Observable {
         numberOfFloors = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
         numberOfElevators = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
         zeroTime = System.currentTimeMillis();
-        zeroInstant = Instant.now();
     }
 
    public static Building getInstance() throws ElevatorSystemException {
@@ -168,6 +165,5 @@ public class Building implements Observable {
     static long getZeroTime() {
         return zeroTime;
     }
-    static Instant getZeroInstant() { return zeroInstant; }
 
 }
