@@ -10,7 +10,7 @@
     <property name="logger"             value="file" />
     <property name="logFile"            value="../../log.txt" />
     <property name="controller"         value="beta" />
-    <property name="creationRate"       value="2" />
-    <property name="simulationDuration" value="60" />
-    <property name="delayFactor"        value="5" />
+    <property name="creationRate"       value="3" />
+    <property name="simulationDuration" value="20" />
+    <property name="delayFactor"        value="3" />
 </configuration>

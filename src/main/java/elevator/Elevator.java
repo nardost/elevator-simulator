@@ -20,6 +20,7 @@ class Elevator implements GenericElevator {
     private boolean servingARiderRequest;
     private boolean servingAFloorRequest;
     private boolean doorsOpen;
+    private boolean running;
     private static int defaultFloor;
 
     private List<Integer> riderRequests = new ArrayList<>();
@@ -32,7 +33,6 @@ class Elevator implements GenericElevator {
     private static int instanceCounter = 0;
 
     Elevator() throws ElevatorSystemException {
-
         setElevatorId(++instanceCounter);
         setSpeed();
         setDirection(Direction.IDLE);
@@ -50,15 +50,16 @@ class Elevator implements GenericElevator {
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
             final long DELAY_FACTOR = Long.parseLong(SystemConfiguration.getConfiguration("delayFactor"));
             while (elapsedSeconds < SIMULATION_DURATION * DELAY_FACTOR) {
-                while(nextStop()) {
+                setRunning(true);
+                if(nextStop()) {
                     move();
-                } //else {
-                    //TODO: check for pending requests; if any, get them and continue the loop.
+                    System.out.println(Thread.currentThread().getName());
+                } else {
                     if (ElevatorController.getInstance().pendingRequests(getElevatorId())) {
                         System.out.println("Pending requests....");
                         continue;
                     }
-                //}
+                }
                 if (getLocation() != getDefaultFloor()) {
                     if(getReverseNextFloorQueue().peek() != null || getNaturalNextFloorQueue().peek() != null) {
                         continue;
@@ -69,14 +70,13 @@ class Elevator implements GenericElevator {
                     addNextStop(getDefaultFloor());
                     setDirection(Utility.evaluateDirection(getLocation(), getDefaultFloor()));
                     move();
-                } else {
-                    continue;
                 }
                 if (doorsOpen()) {
                     closeDoors();
                 }
                 elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             }
+            setRunning(false);
             EventLogger.print("*** Simulation Ended ***");
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
@@ -134,7 +134,6 @@ class Elevator implements GenericElevator {
         if(doorsOpen()) {
             closeDoors();
         }
-
         if(getLocation() < floor) {
             for (int i = getLocation(); i <= floor; i++) {
                 setDirection(Direction.UP);
@@ -148,6 +147,7 @@ class Elevator implements GenericElevator {
                 if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().containsKey(new Integer(getLocation()))) {
                     markFloorServed(i);
                     //Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
+                    Building.getInstance().notifyObservers(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
                     openDoors();
                     closeDoors();
                     ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), UP);
@@ -171,8 +171,10 @@ class Elevator implements GenericElevator {
                 if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().containsKey(new Integer(getLocation()))) {
                     markFloorServed(i);
                     //Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
+                    Building.getInstance().notifyObservers(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
                     openDoors();
                     closeDoors();
+                    System.out.println((isRunning()) ? "Still Running" : "Terminated");
                     ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
@@ -362,6 +364,14 @@ class Elevator implements GenericElevator {
 
     private static void setDefaultFloor(int defaultFloor) {
         Elevator.defaultFloor = defaultFloor;
+    }
+
+    boolean isRunning() {
+        return running;
+    }
+
+    private void setRunning(boolean running) {
+        this.running = running;
     }
 
     boolean isDispatched() {

@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 class ControllerBeta implements Controller {
@@ -16,13 +15,11 @@ class ControllerBeta implements Controller {
 
     private final int NUMBER_OF_FLOORS;
     private final int NUMBER_OF_ELEVATORS;
-    private final long SIMULATION_DURATION;
 
     ControllerBeta() throws ElevatorSystemException {
         try {
             NUMBER_OF_FLOORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfFloors"));
             NUMBER_OF_ELEVATORS = Integer.parseInt(SystemConfiguration.getConfiguration("numberOfElevators"));
-            SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
 
             this.floorRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
             this.pendingRequestQueue = new ArrayBlockingQueue<>(2 * NUMBER_OF_FLOORS - 2);
@@ -69,42 +66,44 @@ class ControllerBeta implements Controller {
     private void serveFloorRequests() {
         System.out.println("inside controller thread...");
 
-        try {
-            long elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
-            while (elapsedSeconds < SIMULATION_DURATION * 2L) {
-                try {
-                    synchronized (getFloorRequests()) {
-                        System.out.println(getFloorRequests().size() + " floor requests. Waiting -- Controller");
-                        getFloorRequests().wait();
-                        System.out.println(getFloorRequests().size() + " floor requests. Awake -- Controller");
-                    }
-                } catch(InterruptedException ie) {
-                    ie.printStackTrace();
+        boolean running = false;
+        for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
+            running = running || getElevator(i).isRunning();
+        }
+        while(running) {
+            try {
+                synchronized (getFloorRequests()) {
+                    System.out.println(getFloorRequests().size() + " floor requests. Waiting -- Controller");
+                    getFloorRequests().wait();
+                    System.out.println(getFloorRequests().size() + " floor requests. Awake -- Controller");
                 }
-                try {
-                    System.out.println("inside controller .... " + getFloorRequests().size());
-                    FloorRequest request = getFloorRequests().poll();
-                    if(request == null) {
-                        continue;
-                    }
-
-                    Elevator e = selectElevator(request);
-                    if (e != null) {
-                        int fromFloorNumber = request.getFloorOfOrigin();
-                        Direction direction = request.getDirectionRequested();
-                        EventLogger.print("Elevator " + e.getElevatorId() + " allocated to floor request " + request.toString());
-                        e.addFloorRequest(fromFloorNumber, direction);
-                        e.setDispatched(true);
-                        e.setDispatchedToServeDirection(direction);
-                        e.setDispatchedForFloor(fromFloorNumber);
-                    }
-                } catch(ElevatorSystemException ese) {
-                    System.out.println(ese.getMessage());
-                }
-                elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
+            } catch(InterruptedException ie) {
+                ie.printStackTrace();
             }
-        } catch (ElevatorSystemException ese) {
-            System.out.println(ese.getMessage());
+            try {
+                System.out.println("inside controller .... " + getFloorRequests().size());
+                FloorRequest request = getFloorRequests().poll();
+                if(request == null) {
+                    continue;
+                }
+
+                Elevator e = selectElevator(request);
+                if (e != null) {
+                    int fromFloorNumber = request.getFloorOfOrigin();
+                    Direction direction = request.getDirectionRequested();
+                    EventLogger.print("Elevator " + e.getElevatorId() + " allocated to floor request " + request.toString());
+                    e.addFloorRequest(fromFloorNumber, direction);
+                    e.setDispatched(true);
+                    e.setDispatchedToServeDirection(direction);
+                    e.setDispatchedForFloor(fromFloorNumber);
+                }
+            } catch(ElevatorSystemException ese) {
+                System.out.println(ese.getMessage());
+            }
+            running = false;
+            for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
+                running = running || getElevator(i).isRunning();
+            }
         }
     }
 
@@ -186,7 +185,7 @@ class ControllerBeta implements Controller {
                         //(9)
                         if(Utility.evaluateDirection(fromFloorNumber, request.getFloorOfOrigin()) == Direction.UP) {
                             //(11)
-                            //TODO: Remove from Pending List, add to Elevator, and continue...
+                            //Remove from Pending List, add to Elevator, and continue...
                             getPendingRequests().remove(request);
                             fromFloorNumber = request.getFloorOfOrigin();
                             direction = request.getDirectionRequested();
@@ -194,6 +193,7 @@ class ControllerBeta implements Controller {
                             continue;
                         } else {
                             //(7)
+                            //Do Nothing. Continues to while loop. Might as well remove this else block.
                         }
                     } else {
                         //(10)

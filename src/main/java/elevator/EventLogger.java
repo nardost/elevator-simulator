@@ -26,20 +26,14 @@ class EventLogger {
         return logger;
     }
 
-    /**
-     * Strategy pattern. Delegates to a specific logging object.
-     */
     public void logEvent(String logMessage) throws ElevatorSystemException {
         getLogger().log(logMessage);
     }
 
     public static void print(String msg) throws ElevatorSystemException {
         StringBuilder sb = new StringBuilder(Utility.formatElapsedTime(System.currentTimeMillis()));
-        sb.append(Thread.currentThread().getName());
+        sb.append(" " + Thread.currentThread().getName());
         sb.append(" " + msg);
-        for(int i = 0; i < 150 - sb.toString().length(); i++) {
-            sb.append(" ");
-        }
         System.out.println(sb.toString());
         EventLogger.getInstance().logEvent(sb.toString());
     }
