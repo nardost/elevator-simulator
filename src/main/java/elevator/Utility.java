@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Utility {
     static int decodeFloorRequestFloor(String key) throws ElevatorSystemException {
@@ -124,12 +125,12 @@ public class Utility {
         final int totalNumberOfRiders = list.size();
         double waitTimes[] = new double[totalNumberOfRiders];
         double rideTimes[] = new double[totalNumberOfRiders];
-        double minWaitTime;
-        double maxWaitTime;
+        double minWaitTime = Double.MAX_VALUE;
+        double maxWaitTime = Double.MIN_VALUE;
         double totalWaitTime;
         double averageWaitTime;
-        double minRideTime;
-        double maxRideTime;
+        double minRideTime = Double.MAX_VALUE;;
+        double maxRideTime = Double.MIN_VALUE;
         double totalRideTime;
         double averageRideTime;
         int personWithMinWaitTime;
@@ -186,16 +187,23 @@ public class Utility {
         sb.append("Average Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(averageWaitTime, 1), 6) + " sec\n");
         sb.append("Average Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(averageRideTime, 1), 6) + " sec\n");
         sb.append("\n");
-        sb.append("Minimum Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(minWaitTime, 1), 6) + " sec (P...)\n");
-        sb.append("Minimum Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(minRideTime, 1), 6) + " sec (P...)\n");
+        personWithMinWaitTime = (1 + indexOf(minWaitTime, waitTimes));
+        sb.append("Minimum Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(minWaitTime, 1), 6) + " sec (P" + personWithMinWaitTime + ")\n");
+        personWithMinRideTime = (1 + indexOf(minRideTime, rideTimes));
+        sb.append("Minimum Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(minRideTime, 1), 6) + " sec (P" + personWithMinRideTime + ")\n");
         sb.append("\n");
-        sb.append("Maximum Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(maxWaitTime, 1), 6) + " sec (P...)\n");
-        sb.append("Maximum Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(maxRideTime, 1), 6) + " sec (P...)\n");
+        personWithMaxWaitTime = (1 + indexOf(maxWaitTime, waitTimes));
+        sb.append("Maximum Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(maxWaitTime, 1), 6) + " sec (P" + personWithMaxWaitTime + ")\n");
+        personWithMaxRideTime = (1 + indexOf(maxRideTime, rideTimes));
+        sb.append("Maximum Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(maxRideTime, 1), 6) + " sec (P" + personWithMaxRideTime + ")\n");
         sb.append("\n");
         sb.append("Unhandled floor requests: " + ElevatorController.getInstance().unhandledFloorRequests());
         sb.append("\n");
         sb.append("Undone Riders: " + undone.toString());
 
         return sb.toString();
+    }
+    static int indexOf(double value, double[] array) {
+        return Arrays.stream(array).boxed().collect(Collectors.toList()).indexOf(value);
     }
 }
