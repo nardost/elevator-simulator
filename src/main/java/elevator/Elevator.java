@@ -96,10 +96,6 @@ class Elevator implements GenericElevator {
         return Objects.hash(getElevatorId());
     }
 
-    public int getSpeed() {
-        return this.speed;
-    }
-
     @Override
     public Direction getDirection() {
         return this.direction;
@@ -176,6 +172,10 @@ class Elevator implements GenericElevator {
             }
             ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), IDLE);
         }
+    }
+
+    int getSpeed() {
+        return this.speed;
     }
 
     private void openDoors() throws ElevatorSystemException {

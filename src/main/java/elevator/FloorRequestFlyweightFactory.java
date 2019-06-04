@@ -3,7 +3,7 @@ package elevator;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FloorRequestFlyweightFactory {
+class FloorRequestFlyweightFactory {
 
     private Map<String, FloorRequestFlyweight> floorRequestFlyweights = new HashMap();
 

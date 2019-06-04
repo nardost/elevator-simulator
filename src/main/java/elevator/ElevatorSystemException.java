@@ -1,6 +1,6 @@
 package elevator;
 
-public class ElevatorSystemException extends Exception {
+class ElevatorSystemException extends Exception {
 
     public ElevatorSystemException(String msg) {
         super(msg);

@@ -66,13 +66,6 @@ public class Building implements Observable {
 
     @Override
     public void notifyObservers(int elevatorId, int elevatorLocation, Direction direction, Direction directionDispatchedFor) throws ElevatorSystemException {
-        /**
-         * If ArrayList is used, the following lines will throw a ConcurrentModificationException (Test3).
-         * CopyOnWriteArrayList was used and the problem disappeared. The Javadoc says the following.
-         * This is ordinarily too costly, but may be more efficient than alternatives when traversal operations
-         * vastly outnumber mutations, and is useful when you cannot or don't want to synchronize traversals,
-         * yet need to preclude interference among concurrent threads.
-         * */
         Validator.validateElevatorNumber(elevatorId);
         Validator.validateFloorNumber(elevatorLocation);
         Iterator iterator = getObservers().iterator();

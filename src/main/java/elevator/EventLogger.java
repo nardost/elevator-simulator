@@ -25,11 +25,11 @@ class EventLogger {
         return logger;
     }
 
-    public void logEvent(String logMessage) throws ElevatorSystemException {
+    void logEvent(String logMessage) throws ElevatorSystemException {
         getLogger().log(logMessage);
     }
 
-    public static void print(String msg) throws ElevatorSystemException {
+    static void print(String msg) throws ElevatorSystemException {
         StringBuilder sb = new StringBuilder(Utility.formatElapsedTime(System.currentTimeMillis()));
         //sb.append(" (" + Thread.currentThread().getName() + ")");
         sb.append(" " + msg);

@@ -5,7 +5,7 @@ class ControllerFactory {
     private ControllerFactory() {
     }
 
-    public static Controller createController() throws ElevatorSystemException {
+    static Controller createController() throws ElevatorSystemException {
         switch(SystemConfiguration.getConfiguration("controller")) {
             case "beta":
                 return new ControllerBeta();

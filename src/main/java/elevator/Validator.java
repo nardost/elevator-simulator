@@ -1,6 +1,6 @@
 package elevator;
 
-public class Validator {
+class Validator {
 
     static void validateNotNull(Object o) throws ElevatorSystemException {
         if(o == null) {

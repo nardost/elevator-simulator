@@ -15,7 +15,7 @@ class Person implements Rider, Observer {
 
     private static  int instanceCounter = 0;
 
-    public Person(int origin, int destination) throws ElevatorSystemException {
+    Person(int origin, int destination) throws ElevatorSystemException {
         Validator.validateFloorNumber(origin);
         Validator.validateFloorNumber(destination);
         setId(++instanceCounter);
@@ -23,6 +23,11 @@ class Person implements Rider, Observer {
         setDestinationFloor(destination);
         setCreatedTime(System.currentTimeMillis());
         setStatus(RiderStatus.WAITING);
+    }
+
+    @Override
+    public int getId() {
+        return id;
     }
 
     @Override
@@ -38,21 +43,6 @@ class Person implements Rider, Observer {
     @Override
     public int hashCode() {
         return Objects.hash(getId());
-    }
-
-    public void sendMeAnElevator() throws ElevatorSystemException {
-        int destination = getDestinationFloor();
-        int origin = getOriginFloor();
-        Direction direction = (destination > origin) ? Direction.UP : Direction.DOWN;
-        if(destination == origin) {
-            EventLogger.print("Person P" + getId() + " does not need an elevator.");
-            setBoardingTime(getCreatedTime());
-            setExitTime(getCreatedTime());
-            setStatus(RiderStatus.DONE);
-            return;
-        }
-        EventLogger.print("Person P" + getId() + " presses " + direction.toString() + " on Floor " + origin);
-        Building.getInstance().relayFloorRequestToControlCenter(origin, direction);
     }
 
     @Override
@@ -77,7 +67,22 @@ class Person implements Rider, Observer {
         decideToBoardOrIgnoreOrExitElevator(elevatorId, floorNumber, directionOfElevator, directionDispatchedFor);
     }
 
-    public void decideToBoardOrIgnoreOrExitElevator(int elevatorId, int floorNumber, Direction directionOfElevator, Direction directionDispatchedFor) throws ElevatorSystemException {
+    void sendMeAnElevator() throws ElevatorSystemException {
+        int destination = getDestinationFloor();
+        int origin = getOriginFloor();
+        Direction direction = (destination > origin) ? Direction.UP : Direction.DOWN;
+        if(destination == origin) {
+            EventLogger.print("Person P" + getId() + " does not need an elevator.");
+            setBoardingTime(getCreatedTime());
+            setExitTime(getCreatedTime());
+            setStatus(RiderStatus.DONE);
+            return;
+        }
+        EventLogger.print("Person P" + getId() + " presses " + direction.toString() + " on Floor " + origin);
+        Building.getInstance().relayFloorRequestToControlCenter(origin, direction);
+    }
+
+    void decideToBoardOrIgnoreOrExitElevator(int elevatorId, int floorNumber, Direction directionOfElevator, Direction directionDispatchedFor) throws ElevatorSystemException {
         Validator.validateElevatorNumber(elevatorId);
         Validator.validateFloorNumber(floorNumber);
         int originFloor = getOriginFloor();
@@ -97,11 +102,6 @@ class Person implements Rider, Observer {
                 }
             }
         }
-    }
-
-    @Override
-    public int getId() {
-        return id;
     }
 
     RiderStatus getStatus() {

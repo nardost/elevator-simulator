@@ -39,7 +39,7 @@ public class SystemConfiguration {
         }
     }
 
-    public static void initializeSystemConfiguration() throws ElevatorSystemException {
+    static void initializeSystemConfiguration() throws ElevatorSystemException {
         if(configurationTable == null) {
             synchronized (SystemConfiguration.class) {
                 if(configurationTable == null) {
@@ -49,7 +49,7 @@ public class SystemConfiguration {
         }
     }
 
-    public static String getConfiguration(String config) {
+    static String getConfiguration(String config) {
         try {
             initializeSystemConfiguration();
         } catch(ElevatorSystemException ese) {

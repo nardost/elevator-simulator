@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class Utility {
+class Utility {
     static int decodeFloorRequestFloor(String key) throws ElevatorSystemException {
         if(validFloorRequestKey(key)) {
             String d = key.substring(key.length() - 1);
@@ -50,7 +50,7 @@ public class Utility {
         return false;
     }
 
-    public static String listToString(List list, String prefix, String separator, String suffix) throws ElevatorSystemException {
+    static String listToString(List list, String prefix, String separator, String suffix) throws ElevatorSystemException {
         try {
             Validator.validateNotNull(list);
         } catch (ElevatorSystemException ese) {
@@ -73,7 +73,7 @@ public class Utility {
         return sb.toString();
     }
 
-    public static Direction evaluateDirection(int from, int to) throws ElevatorSystemException {
+    static Direction evaluateDirection(int from, int to) throws ElevatorSystemException {
         Validator.validateFloorNumber(from);
         Validator.validateFloorNumber(to);
         if(from == to) {
@@ -82,7 +82,7 @@ public class Utility {
         return (from > to) ? Direction.DOWN : Direction.UP;
     }
 
-    public static String formatColumnString(String str, int cols) {
+    static String formatColumnString(String str, int cols) {
         try {
             //any exception must be caught here because method is used in a lambda expression.
             Validator.validateGreaterThanZero(cols);
@@ -100,7 +100,7 @@ public class Utility {
         return str.substring(0, cols);
     }
 
-    public static String formatElapsedTime(long milliTime) throws ElevatorSystemException  {//uses System.currentTimeMillis()
+    static String formatElapsedTime(long milliTime) throws ElevatorSystemException  {//uses System.currentTimeMillis()
         long elapsedTime = milliTime - Building.getInstance().getZeroTime();
         long elapsedSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.MILLISECONDS);
         long s = elapsedSeconds % 60;
@@ -109,7 +109,7 @@ public class Utility {
         return String.format("%02d:%02d:%02d", h, m, s);
     }
 
-    public static String millisToRoundedSeconds(double millis, int decimalPlaces) {
+    static String millisToRoundedSeconds(double millis, int decimalPlaces) {
         StringBuilder sb = new StringBuilder("0.");
         for(int i = 0; i < decimalPlaces; i++) {
             sb.append("0");
@@ -118,16 +118,16 @@ public class Utility {
         return df.format(millis / 1000.0);
     }
 
-    public static String generateReport(List<Person> list) throws ElevatorSystemException {
+    static String generateReport(List<Person> list) throws ElevatorSystemException {
         final int totalNumberOfRiders = list.size();
         double waitTimes[] = new double[totalNumberOfRiders];
         double rideTimes[] = new double[totalNumberOfRiders];
-        double minWaitTime = Double.MAX_VALUE;
-        double maxWaitTime = Double.MIN_VALUE;
+        double minWaitTime;
+        double maxWaitTime;
         double totalWaitTime;
         double averageWaitTime;
-        double minRideTime = Double.MAX_VALUE;;
-        double maxRideTime = Double.MIN_VALUE;
+        double minRideTime;
+        double maxRideTime;
         double totalRideTime;
         double averageRideTime;
         int personWithMinWaitTime;
@@ -136,6 +136,7 @@ public class Utility {
         int personWithMaxRideTime;
         StringBuilder sb = new StringBuilder();
         StringBuilder undone = new StringBuilder();
+        sb.append("\n");
         sb.append("\n");
         sb.append("Person\tStart Floor\tEnd Floor\tDirection\tWait Time\tRide Time\tTotal Time\n");
         sb.append("------\t-----------\t---------\t---------\t---------\t---------\t----------\n");
