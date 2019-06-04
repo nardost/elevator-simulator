@@ -160,7 +160,6 @@ public class Utility {
                 String destination = Integer.toString(p.getDestinationFloor());
                 String direction = ((p.getOriginFloor() < p.getDestinationFloor()) ? Direction.UP : Direction.DOWN).toString();
                 String waitTimeStr = Utility.millisToRoundedSeconds(waitTime, 1);
-                System.out.println("Wait time for " + p.getId() + " = " + waitTime / 1000.0);
                 String rideTimeStr = Utility.millisToRoundedSeconds(rideTime, 1);
                 String totalTimeStr = Utility.millisToRoundedSeconds(totalTime, 1);
                 sb.append(
@@ -183,8 +182,6 @@ public class Utility {
         totalRideTime = Arrays.stream(rideTimes).sum();
         averageRideTime = totalRideTime / new Integer(totalNumberOfRiders).doubleValue();
 
-        StringBuilder psb = new StringBuilder("(P");
-
         sb.append("\n");
         sb.append("Average Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(averageWaitTime, 1), 6) + " sec\n");
         sb.append("Average Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(averageRideTime, 1), 6) + " sec\n");
@@ -194,11 +191,6 @@ public class Utility {
         sb.append("\n");
         sb.append("Maximum Wait Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(maxWaitTime, 1), 6) + " sec (P...)\n");
         sb.append("Maximum Ride Time: " + Utility.formatColumnString(Utility.millisToRoundedSeconds(maxRideTime, 1), 6) + " sec (P...)\n");
-        //sb.append(Arrays.toString(waitTimes));
-        sb.append("\n");
-        //sb.append(Arrays.toString(rideTimes));
-        sb.append("\n");
-
         sb.append("\n");
         sb.append("Unhandled floor requests: " + ElevatorController.getInstance().unhandledFloorRequests());
         sb.append("\n");

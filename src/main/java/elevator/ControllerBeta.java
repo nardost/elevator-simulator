@@ -41,31 +41,28 @@ class ControllerBeta implements Controller {
         for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
             Elevator e = getElevator(i);
             elevatorThreads[i - 1] = new Thread(() -> e.run());
-            elevatorThreads[i - 1].setName("(elevator_" + i + ")");
+            elevatorThreads[i - 1].setName("elevator_" + i);
             elevatorThreads[i - 1].start();
         }
         Thread buildingThread = new Thread(() -> building.run());
-        buildingThread.setName("(building)");
+        buildingThread.setName("  building");
         buildingThread.start();
 
         ControllerBeta self = this;
         Thread controllerThread = new Thread(() -> self.serveFloorRequests());
-        controllerThread.setName("(controller)");
+        controllerThread.setName("controller");
         controllerThread.start();
 
         try {
             for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
                 elevatorThreads[i - 1].join();
             }
-            System.out.println("Elevator threads ended....");
         } catch(InterruptedException ie) {
             ie.printStackTrace();
         }
     }
 
     private void serveFloorRequests() {
-        System.out.println("inside controller thread...");
-
         boolean running = false;
         for(int i = 1; i <= NUMBER_OF_ELEVATORS; i++) {
             running = running || getElevator(i).isRunning();
@@ -73,15 +70,12 @@ class ControllerBeta implements Controller {
         while(running) {
             try {
                 synchronized (getFloorRequests()) {
-                    System.out.println(getFloorRequests().size() + " floor requests. Waiting -- Controller");
                     getFloorRequests().wait();
-                    System.out.println(getFloorRequests().size() + " floor requests. Awake -- Controller");
                 }
             } catch(InterruptedException ie) {
                 ie.printStackTrace();
             }
             try {
-                System.out.println("inside controller .... " + getFloorRequests().size());
                 FloorRequest request = getFloorRequests().poll();
                 if(request == null) {
                     continue;
@@ -134,7 +128,6 @@ class ControllerBeta implements Controller {
 
         synchronized(getFloorRequests()) {
             saveFloorRequest(request);
-            System.out.println(getFloorRequests().size() + " Requests: Floor request added in Building thread...");
             getFloorRequests().notifyAll();
         }
     }
@@ -185,21 +178,16 @@ class ControllerBeta implements Controller {
                         //(9)
                         if(Utility.evaluateDirection(fromFloorNumber, request.getFloorOfOrigin()) == Direction.UP) {
                             //(11)
-                            //Remove from Pending List, add to Elevator, and continue...
                             getPendingRequests().remove(request);
                             fromFloorNumber = request.getFloorOfOrigin();
                             direction = request.getDirectionRequested();
                             e.addFloorRequest(fromFloorNumber, direction);
                             continue;
-                        } else {
-                            //(7)
-                            //Do Nothing. Continues to while loop. Might as well remove this else block.
-                        }
+                        }//(7)
                     } else {
                         //(10)
                         if(Utility.evaluateDirection(fromFloorNumber, request.getFloorOfOrigin()) == Direction.DOWN) {
                             //(12)
-                            //Remove from Pending List, add to Elevator, and continue...
                             getPendingRequests().remove(request);
                             fromFloorNumber = request.getFloorOfOrigin();
                             direction = request.getDirectionRequested();

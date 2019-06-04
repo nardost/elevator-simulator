@@ -2,15 +2,14 @@ package elevator;
 
 class EventLogger {
 
-    private Logger logger; //For Strategy pattern
+    private Logger logger;
 
-    private static EventLogger theLogger = null; //For Singleton pattern
+    private static EventLogger theLogger = null;
 
     private EventLogger(Logger logger) {
         this.logger = logger;
     }
 
-    //Singleton
     public static EventLogger getInstance() throws ElevatorSystemException {
         if(theLogger == null) {
             synchronized(EventLogger.class) {
@@ -32,7 +31,7 @@ class EventLogger {
 
     public static void print(String msg) throws ElevatorSystemException {
         StringBuilder sb = new StringBuilder(Utility.formatElapsedTime(System.currentTimeMillis()));
-        sb.append(" " + Thread.currentThread().getName());
+        //sb.append(" (" + Thread.currentThread().getName() + ")");
         sb.append(" " + msg);
         System.out.println(sb.toString());
         EventLogger.getInstance().logEvent(sb.toString());

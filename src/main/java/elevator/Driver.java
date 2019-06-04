@@ -8,7 +8,7 @@ public class Driver {
             EventLogger.print("......................................Elevator Simulation Starting Up....................................");
             final long DELAY_FACTOR = Long.parseLong(SystemConfiguration.getConfiguration("delayFactor"));
             final long SIMULATION_DURATION = Long.parseLong(SystemConfiguration.getConfiguration("simulationDuration"));
-            EventLogger.print("......................................Simulation will last for " + DELAY_FACTOR * SIMULATION_DURATION + " seconds ...............................");
+            EventLogger.print(".................................Simulation may last for as long as " + DELAY_FACTOR * SIMULATION_DURATION + " seconds ..........................");
             Building building = Building.getInstance();
             ElevatorDisplay.getInstance().initialize(building.getNumberOfFloors());
             for (int i = 1; i <= building.getNumberOfElevators(); i++) {

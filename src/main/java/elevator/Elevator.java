@@ -53,10 +53,8 @@ class Elevator implements GenericElevator {
                 setRunning(true);
                 if(nextStop()) {
                     move();
-                    System.out.println(Thread.currentThread().getName());
                 } else {
                     if (ElevatorController.getInstance().pendingRequests(getElevatorId())) {
-                        System.out.println("Pending requests....");
                         continue;
                     }
                 }
@@ -77,7 +75,7 @@ class Elevator implements GenericElevator {
                 elapsedSeconds = TimeUnit.SECONDS.convert((System.currentTimeMillis() - Building.getInstance().getZeroTime()), TimeUnit.MILLISECONDS);
             }
             setRunning(false);
-            EventLogger.print("*** Simulation Ended ***");
+            EventLogger.print("Elevator " + getElevatorId() + " is done.");
         } catch(ElevatorSystemException ese) {
             ese.getMessage();
         }
@@ -146,7 +144,6 @@ class Elevator implements GenericElevator {
                 }
                 if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().containsKey(new Integer(getLocation()))) {
                     markFloorServed(i);
-                    //Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
                     Building.getInstance().notifyObservers(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
                     openDoors();
                     closeDoors();
@@ -170,11 +167,9 @@ class Elevator implements GenericElevator {
                 }
                 if(floor == getLocation() || getRiderRequests().contains(new Integer(getLocation())) || getFloorRequests().containsKey(new Integer(getLocation()))) {
                     markFloorServed(i);
-                    //Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
                     Building.getInstance().notifyObservers(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());
                     openDoors();
                     closeDoors();
-                    System.out.println((isRunning()) ? "Still Running" : "Terminated");
                     ElevatorDisplay.getInstance().updateElevator(getElevatorId(), getLocation(), getNumberOfRiders(), DOWN);
                 }
                 Building.getInstance().relayLocationUpdateMessageToControlCenter(getElevatorId(), getLocation(), getDirection(), getDispatchedToServeDirection());

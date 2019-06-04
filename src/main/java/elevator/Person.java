@@ -87,13 +87,6 @@ class Person implements Rider, Observer {
         if(getStatus() == RiderStatus.RIDING) {
             if(elevatorId == getElevatorBoardedOn() && floorNumber == destinationFloor) {
                 exitElevator(elevatorId);
-            } else {
-                StringBuilder sb = new StringBuilder();
-                String reasonForNotExiting = (elevatorId != getElevatorBoardedOn()) ? " I am not on that elevator.": "";
-                sb.append(reasonForNotExiting);
-                reasonForNotExiting = (floorNumber != destinationFloor) ? " This is not my destination." : "";
-                sb.append(reasonForNotExiting);
-                EventLogger.print("P" + getId() + " on Floor " + floorNumber + " can't get out of Elevator " + elevatorId + " because " + sb.toString());
             }
         }
 
