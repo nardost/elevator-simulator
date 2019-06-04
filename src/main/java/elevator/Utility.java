@@ -1,10 +1,7 @@
 package elevator;
 
 import java.text.DecimalFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;

@@ -3,7 +3,6 @@ package elevator;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
